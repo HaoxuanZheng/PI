@@ -5,7 +5,8 @@ import type { ObjectSnapshot } from "@lifegraph/domain";
 import { ObjectNotFoundError } from "@lifegraph/db";
 import { provisionActor } from "@/lib/actor";
 import { getAuthService } from "@/lib/auth";
-import { getObjectRepository, getPermissionRepository } from "@/lib/db";
+import { getObjectRepository, getPermissionRepository, getRelationshipRepository } from "@/lib/db";
+import { createRelationship, removeRelationship } from "../actions";
 import { ObjectEditor } from "./ObjectEditor";
 import { RestoreRevisionButton } from "./RestoreRevisionButton";
 
@@ -23,12 +24,29 @@ export default async function ObjectPage({ params }: ObjectPageProps) {
     const current = await repository.get(actor.id, parsedId.data);
     const revisions = await repository.revisions(actor.id, parsedId.data);
     const editDecision = await getPermissionRepository().can({ actorUserId: actor.id, action: "EDIT", resourceType: "OBJECT", resourceId: parsedId.data });
+    const related = await getRelationshipRepository().related(actor.id, parsedId.data);
+    const choices = editDecision.allowed ? (await repository.list(actor.id, 100)).filter(({ object }) => object.id !== current.object.id) : [];
 
     return (
       <main className="libraryShell">
         <Link className="back" href="/library">← Private library</Link>
         <p className="eyebrow">{current.object.type} · {current.object.visibility}</p>
         <ObjectEditor canEdit={editDecision.allowed} initialRevisionId={current.currentRevision.id} initialSnapshot={current.currentRevision.snapshot as ObjectSnapshot} objectId={current.object.id} />
+
+        <section className="relationships" aria-labelledby="relationships-title">
+          <p className="eyebrow">Personal graph</p><h2 id="relationships-title">Related objects</h2>
+          {editDecision.allowed && choices.length > 0 && <form action={createRelationship} className="relationshipForm">
+            <input name="objectId" type="hidden" value={current.object.id} />
+            <select aria-label="Relationship" name="relationshipType" defaultValue="RELATED_TO"><option value="RELATED_TO">related to</option><option value="MENTIONS">mentions</option><option value="PART_OF">part of</option><option value="WORKED_ON">worked on</option><option value="ATTENDED">attended</option><option value="KNOWS">knows</option><option value="USES_SKILL">uses skill</option></select>
+            <select aria-label="Target object" name="targetObjectId" required>{choices.map(({ object }) => <option key={object.id} value={object.id}>{object.title ?? "Untitled"} · {object.type}</option>)}</select>
+            <input aria-label="Optional relationship label" name="label" maxLength={120} placeholder="Optional label" />
+            <button className="button" type="submit">Connect</button>
+          </form>}
+          {related.length === 0 ? <p className="muted">No visible relationships yet.</p> : <ol className="relationshipList">{related.map(({ edge, direction, related: item }) => <li key={edge.id}>
+            <Link href={`/library/${item.object.id}`}><strong>{item.object.title ?? "Untitled"}</strong><small>{direction === "OUTGOING" ? "→" : "←"} {edge.relationshipType.toLowerCase().replaceAll("_", " ")} · {item.object.type}{edge.label ? ` · ${edge.label}` : ""}</small></Link>
+            {editDecision.allowed && direction === "OUTGOING" && <form action={removeRelationship}><input name="objectId" type="hidden" value={current.object.id} /><input name="relationshipId" type="hidden" value={edge.id} /><button className="iconButton" aria-label="Remove relationship" type="submit">×</button></form>}
+          </li>)}</ol>}
+        </section>
 
         <section className="history" aria-labelledby="history-title">
           <p className="eyebrow">Immutable history</p>

@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createDatabaseClient } from "../src/index";
 import { createObjectRepository, RevisionConflictError } from "../src/repositories/objects";
 import { createPermissionRepository, PermissionDeniedError } from "../src/repositories/permissions";
+import { createRelationshipRepository, RelationshipValidationError } from "../src/repositories/relationships";
 
 const testDatabaseUrl = process.env.TEST_DATABASE_URL;
 const integration = testDatabaseUrl ? describe : describe.skip;
@@ -21,6 +22,7 @@ integration("object + revision repository", () => {
     if (!client) throw new Error("TEST_DATABASE_URL is required");
     const repository = createObjectRepository(client);
     const permissions = createPermissionRepository(client);
+    const relationships = createRelationshipRepository(client);
     const ownerA = randomUUID();
     const ownerB = randomUUID();
     await repository.provisionUser({ id: ownerA, username: `u${ownerA.replaceAll("-", "").slice(0, 12)}`, email: null });
@@ -106,6 +108,16 @@ integration("object + revision repository", () => {
     })).rejects.toBeInstanceOf(PermissionDeniedError);
     expect(await permissions.list(ownerA, created.object.id)).toHaveLength(1);
     expect(await permissions.audit(ownerA, created.object.id)).toHaveLength(4);
+
+    const target = await repository.create(ownerA, { snapshot: { schemaVersion: 1, type: "PERSON", title: "Related person", tags: [], customFields: {} }, visibility: "PRIVATE" });
+    const edge = await relationships.create(ownerA, created.object.id, { targetObjectId: target.object.id, relationshipType: "MENTIONS" }, "test-edge");
+    expect((await relationships.related(ownerA, created.object.id))[0]?.related.object.id).toBe(target.object.id);
+    expect(await relationships.related(ownerB, created.object.id)).toHaveLength(0);
+    await permissions.grant(ownerA, target.object.id, { principalType: "USER", principalId: ownerB, capability: "READ" }, "test-target-read");
+    expect(await relationships.related(ownerB, created.object.id)).toHaveLength(1);
+    await expect(relationships.create(ownerA, created.object.id, { targetObjectId: created.object.id, relationshipType: "RELATED_TO" })).rejects.toBeInstanceOf(RelationshipValidationError);
+    await relationships.remove(ownerA, created.object.id, edge.id, "test-edge-remove");
+    expect(await relationships.related(ownerA, created.object.id)).toHaveLength(0);
 
     await expect(client.sql.begin(async (sql) => {
       await sql`select set_config('app.current_user_id', ${ownerA}, true)`;

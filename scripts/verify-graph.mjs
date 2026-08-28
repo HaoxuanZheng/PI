@@ -1,0 +1,10 @@
+import { access, readFile } from "node:fs/promises";
+import { resolve } from "node:path";
+const root=resolve(import.meta.dirname,"..");
+const required=["packages/db/migrations/0003_graph.sql","packages/db/src/repositories/relationships.ts","apps/web/app/api/v1/objects/[objectId]/relationships/route.ts","apps/web/app/api/v1/objects/[objectId]/relationships/[relationshipId]/route.ts","docs/architecture/0010-permission-aware-graph.md","docs/runbooks/graph-api.md"];
+await Promise.all(required.map(path=>access(resolve(root,path))));
+const migration=await readFile(resolve(root,required[0]),"utf8");
+for(const invariant of ["object_relationships_no_self_edge","object_relationships_active_uidx","ENABLE ROW LEVEL SECURITY","object_relationships_owner_matches_source"]) if(!migration.includes(invariant)) throw new Error(`Graph migration missing: ${invariant}`);
+const repository=await readFile(resolve(root,required[1]),"utf8");
+for(const check of ['action: "EDIT"','action: "READ"',"OBJECT_RELATIONSHIP_CREATED","OBJECT_RELATIONSHIP_REMOVED"]) if(!repository.includes(check)) throw new Error(`Graph repository missing: ${check}`);
+console.log(`Graph verified (${required.length} required files).`);

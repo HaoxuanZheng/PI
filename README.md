@@ -2,7 +2,7 @@
 
 LifeGraph is a private-by-default Personal Internet: one user-owned source of truth that can power a private library, trusted AI assistance, and explicitly authorized public views.
 
-This repository contains the **Foundation**, **Object + Revision Core**, **Permission Engine**, and **Editor** milestones. Graph, AI, retrieval, imports, and Living Identity are intentionally not implemented yet.
+This repository contains the **Foundation**, **Object + Revision Core**, **Permission Engine**, **Editor**, and **Graph** milestones. AI, retrieval, imports, and Living Identity are intentionally not implemented yet.
 
 ## Requirements
 
@@ -89,6 +89,15 @@ See `docs/runbooks/permission-api.md` for the grant and revoke API.
 
 See `docs/runbooks/editor.md` for behavior and verification.
 
+## Graph invariants
+
+- Edges connect two existing canonical objects and never duplicate active source/target/type tuples.
+- Creating and removing an outgoing edge requires EDIT on its source; creation also requires READ on its target.
+- Related-object responses authorize both endpoints and PostgreSQL RLS independently filters them.
+- Edge removal is a soft delete, and graph audit events never contain private object bodies.
+
+See `docs/runbooks/graph-api.md` for the relationship API.
+
 ## Current boundary
 
-The next milestone is the **Graph**: user-created relationships and related-object navigation built on the same permission boundary.
+The next milestone is **AI Infrastructure**: provider-neutral operations, structured proposal validation, and explicit accept/reject boundaries. Full-text search remains adjacent infrastructure and should land before retrieval-backed AI context.

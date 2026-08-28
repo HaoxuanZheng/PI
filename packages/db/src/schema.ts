@@ -1,4 +1,4 @@
-import type { ObjectSnapshot } from "@lifegraph/domain";
+import type { ObjectSnapshot, RelationshipType } from "@lifegraph/domain";
 import type { Capability, PrincipalType, ResourceType } from "@lifegraph/permissions";
 import { sql } from "drizzle-orm";
 import { index, jsonb, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
@@ -15,6 +15,7 @@ export const capabilityEnum = pgEnum("capability", ["READ", "COMMENT", "EDIT", "
 export const principalTypeEnum = pgEnum("principal_type", ["USER", "CONNECTION", "GROUP", "LINK", "PUBLIC", "SYSTEM_AI"]);
 export const resourceTypeEnum = pgEnum("resource_type", ["OBJECT"]);
 export const actorTypeEnum = pgEnum("actor_type", ["USER", "SYSTEM", "SYSTEM_AI"]);
+export const relationshipTypeEnum = pgEnum("relationship_type", ["MENTIONS", "RELATED_TO", "PART_OF", "WORKED_ON", "ATTENDED", "KNOWS", "USES_SKILL"]);
 
 export const users = pgTable("users", {
   id: uuid("id").primaryKey(),
@@ -67,6 +68,13 @@ export const objectRevisions = pgTable("object_revisions", {
   index("object_revisions_object_created_idx").on(table.objectId, table.createdAt)
 ]);
 
+export const objectRelationships = pgTable("object_relationships", {
+  id: uuid("id").primaryKey().defaultRandom(), ownerId: uuid("owner_id").notNull().references(() => users.id, { onDelete: "restrict" }),
+  sourceObjectId: uuid("source_object_id").notNull().references(() => objects.id, { onDelete: "restrict" }), targetObjectId: uuid("target_object_id").notNull().references(() => objects.id, { onDelete: "restrict" }),
+  relationshipType: relationshipTypeEnum("relationship_type").$type<RelationshipType>().notNull(), label: text("label"),
+  createdByUserId: uuid("created_by_user_id").notNull().references(() => users.id, { onDelete: "restrict" }), createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(), deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "date" })
+}, (table) => [index("object_relationships_source_idx").on(table.sourceObjectId, table.createdAt), index("object_relationships_target_idx").on(table.targetObjectId, table.createdAt), uniqueIndex("object_relationships_active_uidx").on(table.sourceObjectId, table.targetObjectId, table.relationshipType).where(sql`${table.deletedAt} IS NULL`)]);
+
 export const permissionGrants = pgTable("permissions", {
   id: uuid("id").primaryKey().defaultRandom(),
   ownerId: uuid("owner_id").notNull().references(() => users.id, { onDelete: "restrict" }),
@@ -104,3 +112,4 @@ export type ObjectRow = typeof objects.$inferSelect;
 export type ObjectRevisionRow = typeof objectRevisions.$inferSelect;
 export type PermissionGrantRow = typeof permissionGrants.$inferSelect;
 export type AuditLogRow = typeof auditLogs.$inferSelect;
+export type ObjectRelationshipRow = typeof objectRelationships.$inferSelect;
