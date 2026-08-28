@@ -27,7 +27,7 @@ export async function createNote(formData: FormData) {
       schemaVersion: 1,
       type: "NOTE",
       title: form.data.title,
-      body: { format: "plain_text", content: form.data.content },
+      body: { format: "richtext", content: [{ id: crypto.randomUUID(), type: "paragraph", text: form.data.content }] },
       tags: [],
       customFields: {}
     }

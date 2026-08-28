@@ -71,6 +71,12 @@ integration("object + revision repository", () => {
     });
     expect(updated.currentRevision.previousRevisionId).toBe(created.currentRevision.id);
 
+    const noOp = await repository.update(ownerB, created.object.id, {
+      expectedRevisionId: updated.currentRevision.id,
+      snapshot: updated.currentRevision.snapshot
+    });
+    expect(noOp.currentRevision.id).toBe(updated.currentRevision.id);
+
     await expect(repository.update(ownerA, created.object.id, {
       expectedRevisionId: created.currentRevision.id,
       snapshot: updated.currentRevision.snapshot

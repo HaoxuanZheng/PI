@@ -27,6 +27,10 @@ function toDate(value: string | null | undefined, current: Date | null = null) {
   return value === undefined ? current : value === null ? null : new Date(value);
 }
 
+function sameValue(left: unknown, right: unknown) {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
 async function setOwnerContext(transaction: Transaction, ownerId: string) {
   await transaction.execute(statement`select set_config('app.current_user_id', ${ownerId}, true)`);
 }
@@ -137,6 +141,15 @@ export function createObjectRepository(client: DatabaseClient) {
         if (!current || !current.currentRevisionId) throw new ObjectNotFoundError();
         if (current.currentRevisionId !== input.expectedRevisionId) throw new RevisionConflictError();
         if (current.type !== input.snapshot.type) throw new ObjectTypeConflictError("An object's type cannot change between revisions");
+
+        const currentState = await readCurrent(transaction, objectId);
+        if (!currentState) throw new ObjectNotFoundError();
+        const metadataUnchanged =
+          (input.visibility === undefined || input.visibility === current.visibility) &&
+          (input.observedAt === undefined || toDate(input.observedAt)?.getTime() === current.observedAt?.getTime()) &&
+          (input.effectiveFrom === undefined || toDate(input.effectiveFrom)?.getTime() === current.effectiveFrom?.getTime()) &&
+          (input.effectiveTo === undefined || toDate(input.effectiveTo)?.getTime() === current.effectiveTo?.getTime());
+        if (sameValue(input.snapshot, currentState.currentRevision.snapshot) && metadataUnchanged) return currentState;
 
         const [revision] = await transaction.insert(objectRevisions).values({
           objectId,
