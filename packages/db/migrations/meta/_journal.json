@@ -24,6 +24,7 @@
       "breakpoints": true
     },
     { "idx": 3, "version": "7", "when": 1787970600000, "tag": "0003_graph", "breakpoints": true },
-    { "idx": 4, "version": "7", "when": 1787972400000, "tag": "0004_ai_infrastructure", "breakpoints": true }
+    { "idx": 4, "version": "7", "when": 1787972400000, "tag": "0004_ai_infrastructure", "breakpoints": true },
+    { "idx": 5, "version": "7", "when": 1787974200000, "tag": "0005_inline_ai", "breakpoints": true }
   ]
 }

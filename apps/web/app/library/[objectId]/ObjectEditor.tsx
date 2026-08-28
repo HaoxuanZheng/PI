@@ -2,6 +2,7 @@
 
 import { snapshotBlocks, type EditorBlock, type ObjectSnapshot } from "@lifegraph/domain";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { InlineAI } from "./InlineAI";
 
 type SaveState = "clean" | "dirty" | "saving" | "saved" | "offline" | "conflict" | "error";
 type Props = { objectId: string; initialRevisionId: string; initialSnapshot: ObjectSnapshot; canEdit: boolean };
@@ -22,6 +23,7 @@ export function ObjectEditor({ objectId, initialRevisionId, initialSnapshot, can
   const queued = useRef<ObjectSnapshot | null>(null);
   const skipFirstSave = useRef(true);
   const blockedByConflict = useRef(false);
+  const [aiSelection,setAISelection]=useState<{blockId:string;text:string}|null>(null);
 
   useEffect(() => {
     if (!canEdit) return;
@@ -136,7 +138,7 @@ export function ObjectEditor({ objectId, initialRevisionId, initialSnapshot, can
           <select aria-label="Block type" onChange={(event) => updateBlock(block.id, { type: event.target.value as EditorBlock["type"] })} value={block.type}>
             <option value="paragraph">Text</option><option value="heading">Heading</option><option value="bullet">Bullet</option>
           </select>
-          <textarea aria-label={`${block.type} block`} className={`blockInput block-${block.type}`} onChange={(event) => updateBlock(block.id, { text: event.target.value })} rows={block.type === "heading" ? 1 : 3} value={block.text} />
+          <textarea aria-label={`${block.type} block`} className={`blockInput block-${block.type}`} onChange={(event) => updateBlock(block.id, { text: event.target.value })} onSelect={(event)=>{const field=event.currentTarget;const text=field.value.slice(field.selectionStart,field.selectionEnd);if(text.trim())setAISelection({blockId:block.id,text});}} rows={block.type === "heading" ? 1 : 3} value={block.text} />
           <button aria-label="Remove block" className="iconButton" onClick={() => removeBlock(block.id)} type="button">×</button>
         </div>)}
       </div>
@@ -144,6 +146,7 @@ export function ObjectEditor({ objectId, initialRevisionId, initialSnapshot, can
         <button className="button buttonSecondary" onClick={() => updateSnapshot({ body: { format: "richtext", content: [...snapshotBlocks(snapshot), newBlock()] } })} type="button">+ Text block</button>
         <button className="button buttonSecondary" onClick={() => updateSnapshot({ body: { format: "richtext", content: [...snapshotBlocks(snapshot), newBlock("heading")] } })} type="button">+ Heading</button>
       </div>
+      {aiSelection&&<InlineAI baseRevisionId={revisionId} blockId={aiSelection.blockId} objectId={objectId} onClose={()=>setAISelection(null)} selectedText={aiSelection.text}/>} 
     </section>
   );
 }

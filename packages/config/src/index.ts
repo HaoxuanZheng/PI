@@ -14,7 +14,10 @@ const serverSchema = publicSchema.extend({
     "DATABASE_URL must use the postgres:// or postgresql:// scheme"
   ),
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
-  SENTRY_DSN: z.union([url, z.literal("")]).optional()
+  SENTRY_DSN: z.union([url, z.literal("")]).optional(),
+  AI_API_KEY: z.union([z.string().min(1), z.literal("")]).optional(),
+  AI_MODEL: z.string().min(1).default("gpt-5-mini"),
+  AI_BASE_URL: url.default("https://api.openai.com/v1")
 }).superRefine((value, context) => {
   if (value.NODE_ENV === "production" && !value.SENTRY_DSN) {
     context.addIssue({ code: "custom", path: ["SENTRY_DSN"], message: "SENTRY_DSN is required in production" });
