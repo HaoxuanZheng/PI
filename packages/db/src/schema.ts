@@ -1,4 +1,5 @@
 import type { ObjectSnapshot, RelationshipType } from "@lifegraph/domain";
+import type { AIPatchProposal, AIContextManifest } from "@lifegraph/ai";
 import type { Capability, PrincipalType, ResourceType } from "@lifegraph/permissions";
 import { sql } from "drizzle-orm";
 import { index, jsonb, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
@@ -16,6 +17,8 @@ export const principalTypeEnum = pgEnum("principal_type", ["USER", "CONNECTION",
 export const resourceTypeEnum = pgEnum("resource_type", ["OBJECT"]);
 export const actorTypeEnum = pgEnum("actor_type", ["USER", "SYSTEM", "SYSTEM_AI"]);
 export const relationshipTypeEnum = pgEnum("relationship_type", ["MENTIONS", "RELATED_TO", "PART_OF", "WORKED_ON", "ATTENDED", "KNOWS", "USES_SKILL"]);
+export const aiValidationStatusEnum = pgEnum("ai_validation_status", ["VALID", "INVALID"]);
+export const aiUserDecisionEnum = pgEnum("ai_user_decision", ["PENDING", "ACCEPTED", "REJECTED", "MODIFIED", "EXPIRED"]);
 
 export const users = pgTable("users", {
   id: uuid("id").primaryKey(),
@@ -92,6 +95,17 @@ export const permissionGrants = pgTable("permissions", {
     .where(sql`${table.revokedAt} IS NULL`)
 ]);
 
+export const aiOperations = pgTable("ai_operations", {
+  id: uuid("id").primaryKey(), userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "restrict" }),
+  operationType: text("operation_type").notNull(), instruction: text("instruction"), targetObjectId: uuid("target_object_id").notNull().references(() => objects.id, { onDelete: "restrict" }),
+  targetRevisionId: uuid("target_revision_id").notNull().references(() => objectRevisions.id, { onDelete: "restrict" }),
+  permittedContextIds: jsonb("permitted_context_ids").$type<string[]>().notNull(), retrievedContextManifest: jsonb("retrieved_context_manifest").$type<AIContextManifest>().notNull(),
+  provider: text("provider").notNull(), model: text("model").notNull(), promptVersion: text("prompt_version").notNull(),
+  structuredOutput: jsonb("structured_output").$type<AIPatchProposal>().notNull(), validationStatus: aiValidationStatusEnum("validation_status").notNull(),
+  userDecision: aiUserDecisionEnum("user_decision").notNull().default("PENDING"), acceptedPatch: jsonb("accepted_patch").$type<AIPatchProposal | null>(),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(), completedAt: timestamp("completed_at", { withTimezone: true, mode: "date" })
+}, (table) => [index("ai_operations_user_created_idx").on(table.userId, table.createdAt), index("ai_operations_target_created_idx").on(table.targetObjectId, table.createdAt)]);
+
 export const auditLogs = pgTable("audit_logs", {
   id: uuid("id").primaryKey().defaultRandom(),
   actorUserId: uuid("actor_user_id").references(() => users.id, { onDelete: "restrict" }),
@@ -113,3 +127,4 @@ export type ObjectRevisionRow = typeof objectRevisions.$inferSelect;
 export type PermissionGrantRow = typeof permissionGrants.$inferSelect;
 export type AuditLogRow = typeof auditLogs.$inferSelect;
 export type ObjectRelationshipRow = typeof objectRelationships.$inferSelect;
+export type AIOperationRow = typeof aiOperations.$inferSelect;

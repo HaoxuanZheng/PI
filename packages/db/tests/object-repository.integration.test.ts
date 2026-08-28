@@ -5,6 +5,7 @@ import { createDatabaseClient } from "../src/index";
 import { createObjectRepository, RevisionConflictError } from "../src/repositories/objects";
 import { createPermissionRepository, PermissionDeniedError } from "../src/repositories/permissions";
 import { createRelationshipRepository, RelationshipValidationError } from "../src/repositories/relationships";
+import { createAIOperationRepository } from "../src/repositories/ai-operations";
 
 const testDatabaseUrl = process.env.TEST_DATABASE_URL;
 const integration = testDatabaseUrl ? describe : describe.skip;
@@ -23,6 +24,7 @@ integration("object + revision repository", () => {
     const repository = createObjectRepository(client);
     const permissions = createPermissionRepository(client);
     const relationships = createRelationshipRepository(client);
+    const aiOperations = createAIOperationRepository(client);
     const ownerA = randomUUID();
     const ownerB = randomUUID();
     await repository.provisionUser({ id: ownerA, username: `u${ownerA.replaceAll("-", "").slice(0, 12)}`, email: null });
@@ -118,6 +120,13 @@ integration("object + revision repository", () => {
     await expect(relationships.create(ownerA, created.object.id, { targetObjectId: created.object.id, relationshipType: "RELATED_TO" })).rejects.toBeInstanceOf(RelationshipValidationError);
     await relationships.remove(ownerA, created.object.id, edge.id, "test-edge-remove");
     expect(await relationships.related(ownerA, created.object.id)).toHaveLength(0);
+
+    const operationId = randomUUID();
+    const proposal = { operationId, target: { objectId: created.object.id, baseRevisionId: restored.currentRevision.id }, summary: "Improve title", operations: [{ op: "replace" as const, path: "/title" as const, before: "First title", after: "Clear title" }], evidence: [], warnings: [], confidence: 0.9 };
+    const operation = await aiOperations.createPending(ownerA, { operationType: "INLINE_PATCH", instruction: "Improve the title", targetObjectId: created.object.id, targetRevisionId: restored.currentRevision.id, permittedContextIds: [], retrievedContextManifest: { requestedScopes: [], retrieved: [] }, provider: "test", model: "schema-fixture", promptVersion: "inline-patch@1", structuredOutput: proposal });
+    expect(operation.userDecision).toBe("PENDING");
+    await expect(aiOperations.createPending(ownerA, { operationType: "INLINE_PATCH", instruction: "Unsafe", targetObjectId: created.object.id, targetRevisionId: restored.currentRevision.id, permittedContextIds: [], retrievedContextManifest: { requestedScopes: [], retrieved: [] }, provider: "test", model: "invalid", promptVersion: "inline-patch@1", structuredOutput: { ...proposal, operationId: randomUUID(), operations: [{ op: "replace", path: "/__proto__", before: null, after: {} }] } })).rejects.toThrow();
+    expect(await aiOperations.list(ownerA)).toHaveLength(1);
 
     await expect(client.sql.begin(async (sql) => {
       await sql`select set_config('app.current_user_id', ${ownerA}, true)`;

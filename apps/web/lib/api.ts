@@ -1,5 +1,5 @@
 import type { AuthUser } from "@lifegraph/auth";
-import { ObjectNotFoundError, ObjectTypeConflictError, PermissionDeniedError, PermissionNotFoundError, RelationshipNotFoundError, RelationshipValidationError, RevisionConflictError } from "@lifegraph/db";
+import { AIOperationNotFoundError, AIOperationValidationError, ObjectNotFoundError, ObjectTypeConflictError, PermissionDeniedError, PermissionNotFoundError, RelationshipNotFoundError, RelationshipValidationError, RevisionConflictError } from "@lifegraph/db";
 import { NextResponse, type NextRequest } from "next/server";
 import { ZodError, type ZodType } from "zod";
 import { getAuthService } from "./auth";
@@ -56,6 +56,8 @@ export function handleApiError(error: unknown, currentRequestId: string) {
   }
   if (error instanceof RelationshipValidationError) return apiError("VALIDATION_FAILED", error.message, 400, currentRequestId);
   if (error instanceof RelationshipNotFoundError) return apiError("NOT_FOUND", "The relationship was not found.", 404, currentRequestId);
+  if (error instanceof AIOperationValidationError) return apiError("AI_OUTPUT_INVALID", error.message, 400, currentRequestId);
+  if (error instanceof AIOperationNotFoundError) return apiError("NOT_FOUND", "The AI operation was not found.", 404, currentRequestId);
   if (error instanceof ObjectNotFoundError) {
     return apiError("NOT_FOUND", "The object was not found.", 404, currentRequestId);
   }
