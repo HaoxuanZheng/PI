@@ -59,6 +59,19 @@ export function applySafePatch(snapshot: ObjectSnapshot, proposal: AIPatchPropos
   return objectSnapshotSchema.parse(next);
 }
 
+export function validateInlineSelectionPatch(snapshot:ObjectSnapshot,proposal:AIPatchProposal,blockId:string,selectedText:string){
+  if(proposal.operations.length!==1||proposal.operations[0]?.path!=="/body"||proposal.operations[0].op!=="replace")throw new Error("Inline edit must contain one body replacement");
+  const before=objectSnapshotSchema.parse(snapshot);const after=applySafePatch(before,proposal);
+  if(!before.body||before.body.format!=="richtext"||!after.body||after.body.format!=="richtext")throw new Error("Inline edit requires rich text bodies");
+  const beforeBody=before.body,afterBody=after.body;
+  const index=beforeBody.content.findIndex(block=>block.id===blockId);if(index<0)throw new Error("Selected block is absent");
+  const original=beforeBody.content[index];const changed=afterBody.content[index];if(!original||!changed||original.id!==changed.id||original.type!==changed.type)throw new Error("Inline edit changed block identity");
+  if(original.text.split(selectedText).length!==2)throw new Error("Selection must occur exactly once");
+  const [prefix,suffix]=original.text.split(selectedText) as [string,string];if(!changed.text.startsWith(prefix)||!changed.text.endsWith(suffix)||changed.text===original.text)throw new Error("Proposal changed text outside the selection");
+  const untouchedBefore=beforeBody.content.filter((_,position)=>position!==index);const untouchedAfter=afterBody.content.filter((_,position)=>position!==index);if(!equal(untouchedBefore,untouchedAfter))throw new Error("Proposal changed unselected blocks");
+  return proposal;
+}
+
 const prompts = new Map<string, { version: string; system: string }>();
 export function registerPrompt(name: string, version: string, system: string) {
   if (prompts.has(`${name}:${version}`)) throw new Error("Prompt version already registered");
@@ -66,4 +79,24 @@ export function registerPrompt(name: string, version: string, system: string) {
 }
 export function getPrompt(name: string, version: string) {
   const prompt = prompts.get(`${name}:${version}`); if (!prompt) throw new Error("Prompt version is not registered"); return prompt;
+}
+
+export class OpenAICompatibleProvider implements AIProvider {
+  readonly name: string;
+  constructor(readonly model: string, private readonly apiKey: string, private readonly baseUrl = "https://api.openai.com/v1", name = "openai") { this.name = name; }
+  async generateStructured<T>(request: StructuredRequest<T>): Promise<T> {
+    const response = await fetch(`${this.baseUrl}/chat/completions`, { method: "POST", headers: { authorization: `Bearer ${this.apiKey}`, "content-type": "application/json" }, body: JSON.stringify({ model: this.model, response_format: { type: "json_object" }, messages: [{ role: "system", content: request.system }, { role: "user", content: request.input }] }) });
+    if (!response.ok) throw new Error(`AI provider failed with status ${response.status}`);
+    const payload = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
+    const content = payload.choices?.[0]?.message?.content;
+    if (!content) throw new Error("AI provider returned no structured content");
+    return JSON.parse(content) as T;
+  }
+  async generateText(request: TextRequest): Promise<TextResult> {
+    const response = await fetch(`${this.baseUrl}/chat/completions`, { method: "POST", headers: { authorization: `Bearer ${this.apiKey}`, "content-type": "application/json" }, body: JSON.stringify({ model: this.model, messages: [{ role: "system", content: request.system }, { role: "user", content: request.input }] }) });
+    if (!response.ok) throw new Error(`AI provider failed with status ${response.status}`);
+    const payload = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
+    return { text: payload.choices?.[0]?.message?.content ?? "", provider: this.name, model: this.model };
+  }
+  async embed(): Promise<number[][]> { throw new Error("Embeddings are not enabled for the Inline AI provider"); }
 }

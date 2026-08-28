@@ -1,6 +1,6 @@
 {
   "name": "@lifegraph/db",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "private": true,
   "type": "module",
   "exports": { ".": "./src/index.ts" },
@@ -17,6 +17,7 @@
     "@lifegraph/permissions": "workspace:*",
     "drizzle-orm": "0.44.5",
     "postgres": "3.4.7"
+    ,"zod": "4.1.5"
   },
   "devDependencies": {
     "drizzle-kit": "0.31.4",

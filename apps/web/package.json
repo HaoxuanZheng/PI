@@ -1,6 +1,6 @@
 {
   "name": "@lifegraph/web",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@lifegraph/auth": "workspace:*",
+    "@lifegraph/ai": "workspace:*",
     "@lifegraph/config": "workspace:*",
     "@lifegraph/db": "workspace:*",
     "@lifegraph/domain": "workspace:*",

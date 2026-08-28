@@ -28,7 +28,7 @@ describe("object snapshot validation", () => {
   });
 
   it("normalizes legacy text and compares deterministic editor snapshots", () => {
-    expect(snapshotBlocks(note)).toHaveLength(1);
+    expect(snapshotBlocks(objectSnapshotSchema.parse(note))).toHaveLength(1);
     const changed = { ...note, title: "Changed", body: { format: "richtext" as const, content: [
       { id: "a", type: "heading" as const, text: "Heading" },
       { id: "b", type: "paragraph" as const, text: "Private context" }

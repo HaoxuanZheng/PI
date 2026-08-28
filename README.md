@@ -105,7 +105,7 @@ See `docs/runbooks/graph-api.md` for the relationship API.
 - Safe patches use an allowlist of paths, verify `before` values, and validate the complete resulting snapshot.
 - PENDING operations persist only after target EDIT, context READ, revision, manifest, and evidence checks.
 - Proposal metadata is immutable and private to the creating user under RLS.
-- V0.6 has no external proposal-write or Accept/Reject endpoint.
+- V0.7 exposes only server-generated proposal, Accept, and Reject endpoints. AI still cannot write canonical objects without an explicit user Accept.
 
 See `docs/runbooks/ai-infrastructure.md` for adapter and operation rules.
 
