@@ -98,5 +98,10 @@ export class OpenAICompatibleProvider implements AIProvider {
     const payload = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
     return { text: payload.choices?.[0]?.message?.content ?? "", provider: this.name, model: this.model };
   }
-  async embed(): Promise<number[][]> { throw new Error("Embeddings are not enabled for the Inline AI provider"); }
+  async embed(inputs:string[]): Promise<number[][]> {
+    const response=await fetch(`${this.baseUrl}/embeddings`,{method:"POST",headers:{authorization:`Bearer ${this.apiKey}`,"content-type":"application/json"},body:JSON.stringify({model:this.model,input:inputs,encoding_format:"float"})});
+    if(!response.ok)throw new Error(`Embedding provider failed with status ${response.status}`);
+    const payload=await response.json() as {data?:Array<{index:number;embedding:number[]}>};const rows=payload.data?.sort((a,b)=>a.index-b.index);
+    if(!rows||rows.length!==inputs.length||rows.some(row=>row.embedding.length===0))throw new Error("Embedding provider returned an invalid batch");return rows.map(row=>row.embedding);
+  }
 }

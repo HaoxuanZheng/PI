@@ -17,6 +17,7 @@ const serverSchema = publicSchema.extend({
   SENTRY_DSN: z.union([url, z.literal("")]).optional(),
   AI_API_KEY: z.union([z.string().min(1), z.literal("")]).optional(),
   AI_MODEL: z.string().min(1).default("gpt-5-mini"),
+  AI_EMBEDDING_MODEL: z.string().min(1).default("text-embedding-3-small"),
   AI_BASE_URL: url.default("https://api.openai.com/v1")
 }).superRefine((value, context) => {
   if (value.NODE_ENV === "production" && !value.SENTRY_DSN) {

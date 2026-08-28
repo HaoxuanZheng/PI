@@ -1,0 +1,3 @@
+import {describe,expect,it} from "vitest";import {applyContextBudget,chunkSnapshot} from "../src/index";
+const snapshot={schemaVersion:1 as const,type:"NOTE" as const,title:"Project",body:{format:"plain_text" as const,content:"alpha\nbeta\ngamma"},tags:["work"],customFields:{}};
+describe("retrieval derivation",()=>{it("chunks deterministically",()=>expect(chunkSnapshot(snapshot,25).map(item=>item.chunkIndex)).toEqual([0,1,2,3,4]));it("enforces context limits",()=>{const result=applyContextBudget([{objectId:"a",revisionId:"r",chunkId:"1",content:"12345",score:.9,reason:"semantic"},{objectId:"b",revisionId:"r",chunkId:"2",content:"12345",score:.8,reason:"semantic"}],5,1);expect(result.selected).toHaveLength(1);expect(result.usedCharacters).toBe(5);});});
