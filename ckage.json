@@ -1,0 +1,32 @@
+{
+  "name": "lifegraph",
+  "version": "0.2.0",
+  "private": true,
+  "packageManager": "pnpm@11.19.0",
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "scripts": {
+    "build": "pnpm --filter @lifegraph/web build",
+    "dev": "pnpm --filter @lifegraph/web dev",
+    "lint": "eslint . --max-warnings=0",
+    "typecheck": "pnpm -r typecheck",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "verify:foundation": "node scripts/verify-foundation.mjs",
+    "verify:core": "node scripts/verify-object-revision-core.mjs && pnpm db:check",
+    "check": "pnpm verify:foundation && pnpm verify:core && pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+    "db:generate": "pnpm --filter @lifegraph/db db:generate",
+    "db:migrate": "pnpm --filter @lifegraph/db db:migrate",
+    "db:check": "pnpm --filter @lifegraph/db db:check"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.34.0",
+    "@types/node": "24.3.0",
+    "eslint": "9.34.0",
+    "eslint-config-next": "16.3.3",
+    "typescript": "5.9.2",
+    "typescript-eslint": "8.41.0",
+    "vitest": "3.2.4"
+  }
+}

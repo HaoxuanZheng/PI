@@ -1,0 +1,15 @@
+{
+  "name": "@lifegraph/auth",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "typecheck": "tsc --noEmit" },
+  "dependencies": {
+    "@supabase/ssr": "0.7.0",
+    "@supabase/supabase-js": "2.56.1"
+  },
+  "devDependencies": {
+    "typescript": "5.9.2"
+  }
+}
