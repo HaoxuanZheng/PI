@@ -13,7 +13,7 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
     if (context instanceof Response) return context;
     const { objectId } = await params;
     const input = await parseJson(request, restoreRevisionInputSchema);
-    return apiData(await getObjectRepository().restore(context.actor.id, z.uuid().parse(objectId), input), context.requestId);
+    return apiData(await getObjectRepository().restore(context.actor.id, z.uuid().parse(objectId), input, context.requestId), context.requestId);
   } catch (error) {
     return handleApiError(error, currentRequestId);
   }

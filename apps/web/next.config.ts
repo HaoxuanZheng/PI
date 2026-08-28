@@ -4,7 +4,7 @@ const nextConfig: NextConfig = {
   output: "standalone",
   poweredByHeader: false,
   reactStrictMode: true,
-  transpilePackages: ["@lifegraph/auth", "@lifegraph/config", "@lifegraph/db", "@lifegraph/domain"]
+  transpilePackages: ["@lifegraph/auth", "@lifegraph/config", "@lifegraph/db", "@lifegraph/domain", "@lifegraph/permissions"]
 };
 
 export default nextConfig;

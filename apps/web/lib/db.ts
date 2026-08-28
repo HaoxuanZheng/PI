@@ -1,5 +1,5 @@
 import { parseServerEnv } from "@lifegraph/config";
-import { createDatabaseClient, createObjectRepository, type DatabaseClient } from "@lifegraph/db";
+import { createDatabaseClient, createObjectRepository, createPermissionRepository, type DatabaseClient } from "@lifegraph/db";
 
 const globalDatabase = globalThis as typeof globalThis & { lifeGraphDatabase?: DatabaseClient };
 
@@ -13,4 +13,8 @@ export function getDatabaseClient() {
 
 export function getObjectRepository() {
   return createObjectRepository(getDatabaseClient());
+}
+
+export function getPermissionRepository() {
+  return createPermissionRepository(getDatabaseClient());
 }

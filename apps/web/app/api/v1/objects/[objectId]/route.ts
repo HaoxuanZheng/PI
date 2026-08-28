@@ -26,7 +26,7 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
     if (context instanceof Response) return context;
     const { objectId } = await params;
     const input = await parseJson(request, updateObjectInputSchema);
-    return apiData(await getObjectRepository().update(context.actor.id, z.uuid().parse(objectId), input), context.requestId);
+    return apiData(await getObjectRepository().update(context.actor.id, z.uuid().parse(objectId), input, context.requestId), context.requestId);
   } catch (error) {
     return handleApiError(error, currentRequestId);
   }
@@ -39,7 +39,7 @@ export async function DELETE(request: NextRequest, { params }: RouteContext) {
     if (context instanceof Response) return context;
     const { objectId } = await params;
     const input = await parseJson(request, deleteInputSchema);
-    await getObjectRepository().softDelete(context.actor.id, z.uuid().parse(objectId), input.expectedRevisionId);
+    await getObjectRepository().softDelete(context.actor.id, z.uuid().parse(objectId), input.expectedRevisionId, context.requestId);
     return new Response(null, { status: 204, headers: { "x-request-id": context.requestId } });
   } catch (error) {
     return handleApiError(error, currentRequestId);

@@ -14,9 +14,11 @@ The user owns one durable Personal Graph. AI may propose changes but never silen
 ## Privacy and authorization
 
 - Enforce authorization before querying or retrieving private content.
+- Route resource access through `@lifegraph/permissions`; do not add inline owner or grant logic to feature code.
 - Never depend on frontend hiding as an access-control boundary.
 - New objects and imported data must default to `PRIVATE`.
 - Never log raw private content in general application logs.
+- Audit only security-sensitive metadata; never include snapshots or note bodies.
 - Deletion workflows must remove derived search, embedding, cache, and AI context data.
 - Add automated tests for every security-sensitive behavior.
 

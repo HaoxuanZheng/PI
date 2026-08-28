@@ -2,7 +2,7 @@
 
 LifeGraph is a private-by-default Personal Internet: one user-owned source of truth that can power a private library, trusted AI assistance, and explicitly authorized public views.
 
-This repository contains the **Foundation** and **Object + Revision Core** milestones. Permissions beyond owner isolation, rich editing, graph, AI, retrieval, imports, and Living Identity are intentionally not implemented yet.
+This repository contains the **Foundation**, **Object + Revision Core**, and **Permission Engine** milestones. Rich editing, graph, AI, retrieval, imports, and Living Identity are intentionally not implemented yet.
 
 ## Requirements
 
@@ -45,6 +45,7 @@ Database-backed integration tests run when `TEST_DATABASE_URL` points to a dispo
 - `packages/config`: validated client/server environment boundaries
 - `packages/db`: PostgreSQL connection and Drizzle migrations
 - `packages/domain`: versioned object input and snapshot contracts
+- `packages/permissions`: centralized capability decisions and permission schemas
 - `packages/shared`: provider-neutral shared types
 - `docs/architecture`: architecture decision records
 - `docs/runbooks`: deployment and operational instructions
@@ -66,6 +67,17 @@ Browser code may only access `NEXT_PUBLIC_*` variables. `DATABASE_URL` and futur
 
 See `docs/runbooks/object-api.md` for the versioned API contract.
 
+## Permission invariants
+
+- Every object read, update, restore, or delete passes through the centralized capability engine.
+- Active USER grants can provide READ, COMMENT, EDIT, COLLABORATE, SHARE, or ADMIN capabilities.
+- Only the owner can manage grants in V0.3; ADMIN cannot silently delegate access.
+- Public grants cannot expose canonical objects. Anonymous pages must eventually use publication projections.
+- Permission changes and sensitive object actions create metadata-only audit events.
+- Application authorization and PostgreSQL RLS enforce the same direct-user access boundary.
+
+See `docs/runbooks/permission-api.md` for the grant and revoke API.
+
 ## Current boundary
 
-The next milestone is the **Permission Engine**: explicit resource capabilities, authorization decisions, audit events, and negative cross-user tests shared by every future feature.
+The next milestone is the **Editor**: deterministic manual edits, autosave, revision comparison, and conflict-aware restore UI built on the authorization and revision boundaries now in place.

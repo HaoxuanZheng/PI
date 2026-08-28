@@ -1,7 +1,8 @@
 import type { CreateObjectInput, ObjectSnapshot, RestoreRevisionInput, UpdateObjectInput } from "@lifegraph/domain";
 import { and, desc, eq, isNull, sql as statement } from "drizzle-orm";
 import type { DatabaseClient } from "../index";
-import { objectRevisions, objects, users } from "../schema";
+import { auditLogs, objectRevisions, objects, users } from "../schema";
+import { createPermissionRepository } from "./permissions";
 
 export class ObjectNotFoundError extends Error {
   readonly code = "NOT_FOUND";
@@ -30,14 +31,13 @@ async function setOwnerContext(transaction: Transaction, ownerId: string) {
   await transaction.execute(statement`select set_config('app.current_user_id', ${ownerId}, true)`);
 }
 
-async function readCurrent(transaction: Transaction, ownerId: string, objectId: string, includeDeleted = false) {
+async function readCurrent(transaction: Transaction, objectId: string, includeDeleted = false) {
   const rows = await transaction
     .select({ object: objects, currentRevision: objectRevisions })
     .from(objects)
     .innerJoin(objectRevisions, eq(objects.currentRevisionId, objectRevisions.id))
     .where(and(
       eq(objects.id, objectId),
-      eq(objects.ownerId, ownerId),
       includeDeleted ? undefined : isNull(objects.deletedAt)
     ))
     .limit(1);
@@ -45,6 +45,7 @@ async function readCurrent(transaction: Transaction, ownerId: string, objectId: 
 }
 
 export function createObjectRepository(client: DatabaseClient) {
+  const authorization = createPermissionRepository(client);
   return {
     async provisionUser(input: { id: string; username: string; email: string | null; displayName?: string | null }) {
       return client.db.transaction(async (transaction) => {
@@ -103,32 +104,34 @@ export function createObjectRepository(client: DatabaseClient) {
       });
     },
 
-    async list(ownerId: string, limit = 50): Promise<ObjectWithCurrentRevision[]> {
+    async list(actorUserId: string, limit = 50): Promise<ObjectWithCurrentRevision[]> {
       return client.db.transaction(async (transaction) => {
-        await setOwnerContext(transaction, ownerId);
+        await setOwnerContext(transaction, actorUserId);
         return transaction.select({ object: objects, currentRevision: objectRevisions })
           .from(objects)
           .innerJoin(objectRevisions, eq(objects.currentRevisionId, objectRevisions.id))
-          .where(and(eq(objects.ownerId, ownerId), isNull(objects.deletedAt)))
+          .where(isNull(objects.deletedAt))
           .orderBy(desc(objects.updatedAt))
           .limit(Math.min(Math.max(limit, 1), 100));
       });
     },
 
-    async get(ownerId: string, objectId: string): Promise<ObjectWithCurrentRevision> {
+    async get(actorUserId: string, objectId: string): Promise<ObjectWithCurrentRevision> {
+      await authorization.assert({ actorUserId, action: "READ", resourceType: "OBJECT", resourceId: objectId });
       return client.db.transaction(async (transaction) => {
-        await setOwnerContext(transaction, ownerId);
-        const result = await readCurrent(transaction, ownerId, objectId);
+        await setOwnerContext(transaction, actorUserId);
+        const result = await readCurrent(transaction, objectId);
         if (!result) throw new ObjectNotFoundError();
         return result;
       });
     },
 
-    async update(ownerId: string, objectId: string, input: UpdateObjectInput): Promise<ObjectWithCurrentRevision> {
+    async update(actorUserId: string, objectId: string, input: UpdateObjectInput, requestId?: string): Promise<ObjectWithCurrentRevision> {
+      await authorization.assert({ actorUserId, action: "EDIT", resourceType: "OBJECT", resourceId: objectId });
       return client.db.transaction(async (transaction) => {
-        await setOwnerContext(transaction, ownerId);
+        await setOwnerContext(transaction, actorUserId);
         const [current] = await transaction.select().from(objects)
-          .where(and(eq(objects.id, objectId), eq(objects.ownerId, ownerId), isNull(objects.deletedAt)))
+          .where(and(eq(objects.id, objectId), isNull(objects.deletedAt)))
           .for("update")
           .limit(1);
         if (!current || !current.currentRevisionId) throw new ObjectNotFoundError();
@@ -141,7 +144,7 @@ export function createObjectRepository(client: DatabaseClient) {
           snapshot: input.snapshot,
           changeType: "UPDATE",
           createdByType: "USER",
-          createdByUserId: ownerId
+          createdByUserId: actorUserId
         }).returning();
         if (!revision) throw new Error("Revision insert returned no row");
 
@@ -154,18 +157,31 @@ export function createObjectRepository(client: DatabaseClient) {
           effectiveTo: toDate(input.effectiveTo, current.effectiveTo),
           currentRevisionId: revision.id,
           updatedAt: revision.createdAt
-        }).where(and(eq(objects.id, objectId), eq(objects.ownerId, ownerId)));
+        }).where(eq(objects.id, objectId));
 
-        const result = await readCurrent(transaction, ownerId, objectId);
+        if (input.visibility !== undefined && input.visibility !== current.visibility) {
+          await transaction.insert(auditLogs).values({
+            actorUserId,
+            actorType: "USER",
+            action: "OBJECT_VISIBILITY_CHANGED",
+            resourceType: "OBJECT",
+            resourceId: objectId,
+            requestId,
+            metadata: { from: current.visibility, to: input.visibility }
+          });
+        }
+
+        const result = await readCurrent(transaction, objectId);
         if (!result) throw new ObjectNotFoundError();
         return result;
       });
     },
 
-    async revisions(ownerId: string, objectId: string) {
+    async revisions(actorUserId: string, objectId: string) {
+      await authorization.assert({ actorUserId, action: "READ", resourceType: "OBJECT", resourceId: objectId });
       return client.db.transaction(async (transaction) => {
-        await setOwnerContext(transaction, ownerId);
-        const current = await readCurrent(transaction, ownerId, objectId, true);
+        await setOwnerContext(transaction, actorUserId);
+        const current = await readCurrent(transaction, objectId, true);
         if (!current) throw new ObjectNotFoundError();
         return transaction.select().from(objectRevisions)
           .where(eq(objectRevisions.objectId, objectId))
@@ -173,11 +189,12 @@ export function createObjectRepository(client: DatabaseClient) {
       });
     },
 
-    async restore(ownerId: string, objectId: string, input: RestoreRevisionInput): Promise<ObjectWithCurrentRevision> {
+    async restore(actorUserId: string, objectId: string, input: RestoreRevisionInput, requestId?: string): Promise<ObjectWithCurrentRevision> {
+      await authorization.assert({ actorUserId, action: "EDIT", resourceType: "OBJECT", resourceId: objectId });
       return client.db.transaction(async (transaction) => {
-        await setOwnerContext(transaction, ownerId);
+        await setOwnerContext(transaction, actorUserId);
         const [current] = await transaction.select().from(objects)
-          .where(and(eq(objects.id, objectId), eq(objects.ownerId, ownerId), isNull(objects.deletedAt)))
+          .where(and(eq(objects.id, objectId), isNull(objects.deletedAt)))
           .for("update")
           .limit(1);
         if (!current || !current.currentRevisionId) throw new ObjectNotFoundError();
@@ -194,7 +211,7 @@ export function createObjectRepository(client: DatabaseClient) {
           snapshot: target.snapshot as ObjectSnapshot,
           changeType: "RESTORE",
           createdByType: "RESTORE",
-          createdByUserId: ownerId
+          createdByUserId: actorUserId
         }).returning();
         if (!revision) throw new Error("Revision insert returned no row");
 
@@ -204,19 +221,30 @@ export function createObjectRepository(client: DatabaseClient) {
           summary: target.snapshot.summary ?? null,
           currentRevisionId: revision.id,
           updatedAt: revision.createdAt
-        }).where(and(eq(objects.id, objectId), eq(objects.ownerId, ownerId)));
+        }).where(eq(objects.id, objectId));
 
-        const result = await readCurrent(transaction, ownerId, objectId);
+        await transaction.insert(auditLogs).values({
+          actorUserId,
+          actorType: "USER",
+          action: "OBJECT_REVISION_RESTORED",
+          resourceType: "OBJECT",
+          resourceId: objectId,
+          requestId,
+          metadata: { restoredRevisionId: target.id, createdRevisionId: revision.id }
+        });
+
+        const result = await readCurrent(transaction, objectId);
         if (!result) throw new ObjectNotFoundError();
         return result;
       });
     },
 
-    async softDelete(ownerId: string, objectId: string, expectedRevisionId: string) {
+    async softDelete(actorUserId: string, objectId: string, expectedRevisionId: string, requestId?: string) {
+      await authorization.assert({ actorUserId, action: "ADMIN", resourceType: "OBJECT", resourceId: objectId });
       return client.db.transaction(async (transaction) => {
-        await setOwnerContext(transaction, ownerId);
+        await setOwnerContext(transaction, actorUserId);
         const [object] = await transaction.select().from(objects)
-          .where(and(eq(objects.id, objectId), eq(objects.ownerId, ownerId), isNull(objects.deletedAt)))
+          .where(and(eq(objects.id, objectId), isNull(objects.deletedAt)))
           .for("update")
           .limit(1);
         if (!object || !object.currentRevisionId) throw new ObjectNotFoundError();
@@ -232,7 +260,7 @@ export function createObjectRepository(client: DatabaseClient) {
           snapshot: currentRevision.snapshot,
           changeType: "DELETE",
           createdByType: "USER",
-          createdByUserId: ownerId
+          createdByUserId: actorUserId
         }).returning();
         if (!revision) throw new Error("Revision insert returned no row");
 
@@ -240,7 +268,17 @@ export function createObjectRepository(client: DatabaseClient) {
           currentRevisionId: revision.id,
           deletedAt: new Date(),
           updatedAt: revision.createdAt
-        }).where(and(eq(objects.id, objectId), eq(objects.ownerId, ownerId)));
+        }).where(eq(objects.id, objectId));
+
+        await transaction.insert(auditLogs).values({
+          actorUserId,
+          actorType: "USER",
+          action: "OBJECT_SOFT_DELETED",
+          resourceType: "OBJECT",
+          resourceId: objectId,
+          requestId,
+          metadata: { deletedRevisionId: revision.id }
+        });
       });
     }
   };
