@@ -27,3 +27,4 @@ export * from "./schema";
 export * from "./repositories/objects";
 export * from "./repositories/permissions";
 export * from "./repositories/relationships";
+export * from "./repositories/ai-operations";

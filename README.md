@@ -2,7 +2,7 @@
 
 LifeGraph is a private-by-default Personal Internet: one user-owned source of truth that can power a private library, trusted AI assistance, and explicitly authorized public views.
 
-This repository contains the **Foundation**, **Object + Revision Core**, **Permission Engine**, **Editor**, and **Graph** milestones. AI, retrieval, imports, and Living Identity are intentionally not implemented yet.
+This repository contains the **Foundation**, **Object + Revision Core**, **Permission Engine**, **Editor**, **Graph**, and **AI Infrastructure** milestones. Inline AI, retrieval, imports, and Living Identity are intentionally not implemented yet.
 
 ## Requirements
 
@@ -98,6 +98,17 @@ See `docs/runbooks/editor.md` for behavior and verification.
 
 See `docs/runbooks/graph-api.md` for the relationship API.
 
+## AI infrastructure invariants
+
+- Provider SDK calls stay behind `AIProvider`; structured results are always parsed again against Zod schemas.
+- AI output is a proposal, never a database mutation or authoritative object snapshot.
+- Safe patches use an allowlist of paths, verify `before` values, and validate the complete resulting snapshot.
+- PENDING operations persist only after target EDIT, context READ, revision, manifest, and evidence checks.
+- Proposal metadata is immutable and private to the creating user under RLS.
+- V0.6 has no external proposal-write or Accept/Reject endpoint.
+
+See `docs/runbooks/ai-infrastructure.md` for adapter and operation rules.
+
 ## Current boundary
 
-The next milestone is **AI Infrastructure**: provider-neutral operations, structured proposal validation, and explicit accept/reject boundaries. Full-text search remains adjacent infrastructure and should land before retrieval-backed AI context.
+The next milestone is **Inline AI**: selection, command, schema-valid proposal generation, diff, and transactional Accept/Reject that creates an undoable `AI_ACCEPTED` revision. Full-text search remains adjacent infrastructure and must land before retrieval-backed AI context expands beyond explicitly selected objects.
