@@ -109,6 +109,14 @@ h2 { font-size: clamp(2.3rem, 5vw, 4.7rem); letter-spacing: -.06em; line-height:
 .diffRow del, .diffRow ins { border-radius: 5px; padding: 10px; text-decoration: none; white-space: pre-wrap; }
 .diffRow del { background: #f8e5df; }
 .diffRow ins { background: #edf2dd; }
+.relationships { margin-top: 72px; }
+.relationships h2 { font-size: 2rem; }
+.relationshipForm { background: var(--card); border: 1px solid var(--line); display: grid; gap: 10px; grid-template-columns: 1fr 1.5fr 1fr auto; margin: 24px 0; padding: 16px; }
+.relationshipForm select, .relationshipForm input { background: white; border: 1px solid var(--line); border-radius: 7px; padding: 10px; min-width: 0; }
+.relationshipList { list-style: none; margin: 0; padding: 0; }
+.relationshipList li { align-items: center; border-top: 1px solid var(--line); display: flex; justify-content: space-between; }
+.relationshipList a { display: grid; gap: 6px; padding: 16px 4px; text-decoration: none; }
+.relationshipList small { color: var(--muted); }
 @media (max-width: 760px) {
   .nav { padding: 22px 20px; }
   .hero, .principles { padding: 72px 20px; }
@@ -121,5 +129,6 @@ h2 { font-size: clamp(2.3rem, 5vw, 4.7rem); letter-spacing: -.06em; line-height:
   .editorBlock { grid-template-columns: 1fr 32px; }
   .editorBlock select { grid-column: 1 / -1; }
   .diffRow { grid-template-columns: 1fr; }
+  .relationshipForm { grid-template-columns: 1fr; }
 }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }

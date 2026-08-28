@@ -1,12 +1,12 @@
 "use server";
 
-import { createObjectInputSchema, restoreRevisionInputSchema } from "@lifegraph/domain";
+import { createObjectInputSchema, createRelationshipInputSchema, restoreRevisionInputSchema } from "@lifegraph/domain";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { provisionActor } from "@/lib/actor";
 import { getAuthService } from "@/lib/auth";
-import { getObjectRepository } from "@/lib/db";
+import { getObjectRepository, getRelationshipRepository } from "@/lib/db";
 
 const noteFormSchema = z.object({
   title: z.string().trim().min(1).max(300),
@@ -43,5 +43,18 @@ export async function restoreRevision(formData: FormData) {
     expectedRevisionId: formData.get("expectedRevisionId")
   });
   await getObjectRepository().restore(await actorId(), objectId, input);
+  revalidatePath(`/library/${objectId}`);
+}
+
+export async function createRelationship(formData: FormData) {
+  const objectId = z.uuid().parse(formData.get("objectId"));
+  const input = createRelationshipInputSchema.parse({ targetObjectId: formData.get("targetObjectId"), relationshipType: formData.get("relationshipType"), label: formData.get("label") || null });
+  await getRelationshipRepository().create(await actorId(), objectId, input);
+  revalidatePath(`/library/${objectId}`);
+}
+
+export async function removeRelationship(formData: FormData) {
+  const objectId = z.uuid().parse(formData.get("objectId"));
+  await getRelationshipRepository().remove(await actorId(), objectId, z.uuid().parse(formData.get("relationshipId")));
   revalidatePath(`/library/${objectId}`);
 }

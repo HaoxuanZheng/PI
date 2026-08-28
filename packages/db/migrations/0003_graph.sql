@@ -1,0 +1,17 @@
+CREATE TYPE relationship_type AS ENUM ('MENTIONS', 'RELATED_TO', 'PART_OF', 'WORKED_ON', 'ATTENDED', 'KNOWS', 'USES_SKILL');
+CREATE TABLE object_relationships (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), owner_id uuid NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+ source_object_id uuid NOT NULL REFERENCES objects(id) ON DELETE RESTRICT, target_object_id uuid NOT NULL REFERENCES objects(id) ON DELETE RESTRICT,
+ relationship_type relationship_type NOT NULL, label text, created_by_user_id uuid NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+ created_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz,
+ CONSTRAINT object_relationships_no_self_edge CHECK (source_object_id <> target_object_id), CONSTRAINT object_relationships_label_length CHECK (label IS NULL OR char_length(label) <= 120)
+);
+CREATE INDEX object_relationships_source_idx ON object_relationships (source_object_id, created_at DESC);
+CREATE INDEX object_relationships_target_idx ON object_relationships (target_object_id, created_at DESC);
+CREATE UNIQUE INDEX object_relationships_active_uidx ON object_relationships (source_object_id, target_object_id, relationship_type) WHERE deleted_at IS NULL;
+CREATE FUNCTION validate_relationship_owner() RETURNS trigger LANGUAGE plpgsql AS $$ DECLARE actual_owner uuid; BEGIN SELECT owner_id INTO actual_owner FROM objects WHERE id = NEW.source_object_id; IF actual_owner IS NULL OR actual_owner <> NEW.owner_id THEN RAISE EXCEPTION 'relationship owner must own source object' USING ERRCODE = '42501'; END IF; RETURN NEW; END; $$;
+CREATE TRIGGER object_relationships_owner_matches_source BEFORE INSERT OR UPDATE OF owner_id, source_object_id ON object_relationships FOR EACH ROW EXECUTE FUNCTION validate_relationship_owner();
+ALTER TABLE object_relationships ENABLE ROW LEVEL SECURITY; ALTER TABLE object_relationships FORCE ROW LEVEL SECURITY;
+CREATE POLICY object_relationships_select_policy ON object_relationships FOR SELECT USING (EXISTS (SELECT 1 FROM objects source WHERE source.id = source_object_id) AND EXISTS (SELECT 1 FROM objects target WHERE target.id = target_object_id));
+CREATE POLICY object_relationships_insert_policy ON object_relationships FOR INSERT WITH CHECK (created_by_user_id = nullif(current_setting('app.current_user_id', true), '')::uuid AND EXISTS (SELECT 1 FROM objects source WHERE source.id = source_object_id AND source.owner_id = owner_id AND (source.owner_id = nullif(current_setting('app.current_user_id', true), '')::uuid OR EXISTS (SELECT 1 FROM permissions p WHERE p.resource_id = source.id AND p.resource_type = 'OBJECT' AND p.revoked_at IS NULL AND p.principal_type = 'USER' AND p.principal_id = current_setting('app.current_user_id', true) AND p.capability IN ('EDIT','COLLABORATE','ADMIN')))) AND EXISTS (SELECT 1 FROM objects target WHERE target.id = target_object_id));
+CREATE POLICY object_relationships_update_policy ON object_relationships FOR UPDATE USING (EXISTS (SELECT 1 FROM objects source WHERE source.id = source_object_id AND (source.owner_id = nullif(current_setting('app.current_user_id', true), '')::uuid OR EXISTS (SELECT 1 FROM permissions p WHERE p.resource_id = source.id AND p.resource_type = 'OBJECT' AND p.revoked_at IS NULL AND p.principal_type = 'USER' AND p.principal_id = current_setting('app.current_user_id', true) AND p.capability IN ('EDIT','COLLABORATE','ADMIN'))))) WITH CHECK (owner_id = (SELECT owner_id FROM objects source WHERE source.id = source_object_id));

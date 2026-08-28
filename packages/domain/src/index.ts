@@ -16,6 +16,7 @@ export const objectTypeSchema = z.enum([
 ]);
 
 export const visibilitySchema = z.enum(["PRIVATE", "PUBLIC"]);
+export const relationshipTypeSchema = z.enum(["MENTIONS", "RELATED_TO", "PART_OF", "WORKED_ON", "ATTENDED", "KNOWS", "USES_SKILL"]);
 export const usernameSchema = z.string().trim().toLowerCase().regex(
   /^[a-z0-9][a-z0-9_-]{2,29}$/,
   "Use 3–30 lowercase letters, numbers, underscores, or hyphens"
@@ -69,6 +70,7 @@ export const restoreRevisionInputSchema = z.object({
   revisionId: z.uuid(),
   expectedRevisionId: z.uuid()
 });
+export const createRelationshipInputSchema = z.object({ targetObjectId: z.uuid(), relationshipType: relationshipTypeSchema, label: z.string().trim().min(1).max(120).nullable().optional() });
 
 export type ObjectType = z.infer<typeof objectTypeSchema>;
 export type ObjectVisibility = z.infer<typeof visibilitySchema>;
@@ -77,6 +79,8 @@ export type EditorBlock = z.infer<typeof editorBlockSchema>;
 export type CreateObjectInput = z.infer<typeof createObjectInputSchema>;
 export type UpdateObjectInput = z.infer<typeof updateObjectInputSchema>;
 export type RestoreRevisionInput = z.infer<typeof restoreRevisionInputSchema>;
+export type RelationshipType = z.infer<typeof relationshipTypeSchema>;
+export type CreateRelationshipInput = z.infer<typeof createRelationshipInputSchema>;
 
 export type CreatedByType = "USER" | "AI_ACCEPTED" | "IMPORT" | "SYSTEM_MIGRATION" | "RESTORE";
 export type ChangeType = "CREATE" | "UPDATE" | "RESTORE" | "DELETE";
