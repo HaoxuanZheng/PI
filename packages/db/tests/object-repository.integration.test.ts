@@ -6,6 +6,8 @@ import { createObjectRepository, RevisionConflictError } from "../src/repositori
 import { createPermissionRepository, PermissionDeniedError } from "../src/repositories/permissions";
 import { createRelationshipRepository, RelationshipValidationError } from "../src/repositories/relationships";
 import { createAIOperationRepository } from "../src/repositories/ai-operations";
+import { createRetrievalRepository } from "../src/repositories/retrieval";
+import type { AIProvider } from "@lifegraph/ai";
 
 const testDatabaseUrl = process.env.TEST_DATABASE_URL;
 const integration = testDatabaseUrl ? describe : describe.skip;
@@ -25,6 +27,8 @@ integration("object + revision repository", () => {
     const permissions = createPermissionRepository(client);
     const relationships = createRelationshipRepository(client);
     const aiOperations = createAIOperationRepository(client);
+    const retrieval = createRetrievalRepository(client);
+    const embeddingProvider:AIProvider={name:"test",model:"fixed-1536",generateStructured:async()=>{throw new Error("unused");},generateText:async()=>{throw new Error("unused");},embed:async inputs=>inputs.map(()=>Array.from({length:1536},()=>0.01))};
     const ownerA = randomUUID();
     const ownerB = randomUUID();
     await repository.provisionUser({ id: ownerA, username: `u${ownerA.replaceAll("-", "").slice(0, 12)}`, email: null });
@@ -127,6 +131,13 @@ integration("object + revision repository", () => {
     expect(operation.userDecision).toBe("PENDING");
     await expect(aiOperations.createPending(ownerA, { operationType: "INLINE_PATCH", instruction: "Unsafe", targetObjectId: created.object.id, targetRevisionId: restored.currentRevision.id, permittedContextIds: [], retrievedContextManifest: { requestedScopes: [], retrieved: [] }, provider: "test", model: "invalid", promptVersion: "inline-patch@1", structuredOutput: { ...proposal, operationId: randomUUID(), operations: [{ op: "replace", path: "/__proto__", before: null, after: {} }] } })).rejects.toThrow();
     expect(await aiOperations.list(ownerA)).toHaveLength(1);
+
+    const hidden=await repository.create(ownerA,{snapshot:{schemaVersion:1,type:"NOTE",title:"Secret evidence",body:{format:"plain_text",content:"private launch plan"},tags:[],customFields:{}},visibility:"PRIVATE"});
+    await retrieval.indexObject(ownerA,hidden.object.id,embeddingProvider);
+    expect((await retrieval.search(ownerB,"private launch",embeddingProvider)).selected.some(item=>item.objectId===hidden.object.id)).toBe(false);
+    expect((await retrieval.search(ownerA,"private launch",embeddingProvider)).selected.some(item=>item.objectId===hidden.object.id)).toBe(true);
+    await repository.softDelete(ownerA,hidden.object.id,hidden.currentRevision.id,"test-delete");
+    expect((await retrieval.search(ownerA,"private launch",embeddingProvider)).selected.some(item=>item.objectId===hidden.object.id)).toBe(false);
 
     await expect(client.sql.begin(async (sql) => {
       await sql`select set_config('app.current_user_id', ${ownerA}, true)`;

@@ -2,7 +2,7 @@ import type { ObjectSnapshot, RelationshipType } from "@lifegraph/domain";
 import type { AIPatchProposal, AIContextManifest } from "@lifegraph/ai";
 import type { Capability, PrincipalType, ResourceType } from "@lifegraph/permissions";
 import { sql } from "drizzle-orm";
-import { index, jsonb, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { index, integer, jsonb, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid, vector } from "drizzle-orm/pg-core";
 
 export const accountStatusEnum = pgEnum("account_status", ["ACTIVE", "SUSPENDED", "DELETION_PENDING"]);
 export const objectTypeEnum = pgEnum("object_type", [
@@ -106,6 +106,10 @@ export const aiOperations = pgTable("ai_operations", {
   createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(), completedAt: timestamp("completed_at", { withTimezone: true, mode: "date" })
 }, (table) => [index("ai_operations_user_created_idx").on(table.userId, table.createdAt), index("ai_operations_target_created_idx").on(table.targetObjectId, table.createdAt)]);
 
+export const embeddingChunks=pgTable("embedding_chunks",{
+  id:uuid("id").primaryKey().defaultRandom(),ownerId:uuid("owner_id").notNull().references(()=>users.id,{onDelete:"restrict"}),objectId:uuid("object_id").notNull().references(()=>objects.id,{onDelete:"restrict"}),sourceRevisionId:uuid("source_revision_id").notNull().references(()=>objectRevisions.id,{onDelete:"restrict"}),chunkIndex:integer("chunk_index").notNull(),content:text("content").notNull(),contentHash:text("content_hash").notNull(),embedding:vector("embedding",{dimensions:1536}).notNull(),metadata:jsonb("metadata").$type<{field:string;blockIds:string[]}>().notNull(),createdAt:timestamp("created_at",{withTimezone:true,mode:"date"}).notNull().defaultNow(),deletedAt:timestamp("deleted_at",{withTimezone:true,mode:"date"})
+},table=>[uniqueIndex("embedding_chunks_revision_index_uidx").on(table.objectId,table.sourceRevisionId,table.chunkIndex),index("embedding_chunks_active_object_idx").on(table.objectId,table.sourceRevisionId)]);
+
 export const auditLogs = pgTable("audit_logs", {
   id: uuid("id").primaryKey().defaultRandom(),
   actorUserId: uuid("actor_user_id").references(() => users.id, { onDelete: "restrict" }),
@@ -128,3 +132,4 @@ export type PermissionGrantRow = typeof permissionGrants.$inferSelect;
 export type AuditLogRow = typeof auditLogs.$inferSelect;
 export type ObjectRelationshipRow = typeof objectRelationships.$inferSelect;
 export type AIOperationRow = typeof aiOperations.$inferSelect;
+export type EmbeddingChunkRow = typeof embeddingChunks.$inferSelect;
