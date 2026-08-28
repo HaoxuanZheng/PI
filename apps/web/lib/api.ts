@@ -1,5 +1,5 @@
 import type { AuthUser } from "@lifegraph/auth";
-import { ObjectNotFoundError, ObjectTypeConflictError, RevisionConflictError } from "@lifegraph/db";
+import { ObjectNotFoundError, ObjectTypeConflictError, PermissionDeniedError, PermissionNotFoundError, RevisionConflictError } from "@lifegraph/db";
 import { NextResponse, type NextRequest } from "next/server";
 import { ZodError, type ZodType } from "zod";
 import { getAuthService } from "./auth";
@@ -56,6 +56,9 @@ export function handleApiError(error: unknown, currentRequestId: string) {
   }
   if (error instanceof ObjectNotFoundError) {
     return apiError("NOT_FOUND", "The object was not found.", 404, currentRequestId);
+  }
+  if (error instanceof PermissionDeniedError || error instanceof PermissionNotFoundError) {
+    return apiError("NOT_FOUND", "The object or permission was not found.", 404, currentRequestId);
   }
   return apiError("INTERNAL_ERROR", "The request could not be completed.", 500, currentRequestId);
 }

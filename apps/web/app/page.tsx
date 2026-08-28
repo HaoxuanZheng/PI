@@ -16,7 +16,7 @@ export default function HomePage() {
       </nav>
 
       <section className="hero">
-        <p className="eyebrow">Foundation milestone · v0.1</p>
+        <p className="eyebrow">Permission Engine milestone · v0.3</p>
         <h1>Your life is connected.<br />Your tools should be too.</h1>
         <p className="lede">
           LifeGraph is a private Personal Internet: one place to capture what matters,

@@ -25,3 +25,4 @@ export function createDatabaseClient(databaseUrl: string): DatabaseClient {
 
 export * from "./schema";
 export * from "./repositories/objects";
+export * from "./repositories/permissions";

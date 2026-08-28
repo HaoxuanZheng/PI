@@ -1,4 +1,5 @@
 import type { ObjectSnapshot } from "@lifegraph/domain";
+import type { Capability, PrincipalType, ResourceType } from "@lifegraph/permissions";
 import { sql } from "drizzle-orm";
 import { index, jsonb, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 
@@ -10,6 +11,10 @@ export const objectTypeEnum = pgEnum("object_type", [
 export const visibilityEnum = pgEnum("visibility", ["PRIVATE", "PUBLIC"]);
 export const changeTypeEnum = pgEnum("change_type", ["CREATE", "UPDATE", "RESTORE", "DELETE"]);
 export const createdByTypeEnum = pgEnum("created_by_type", ["USER", "AI_ACCEPTED", "IMPORT", "SYSTEM_MIGRATION", "RESTORE"]);
+export const capabilityEnum = pgEnum("capability", ["READ", "COMMENT", "EDIT", "COLLABORATE", "SHARE", "ADMIN"]);
+export const principalTypeEnum = pgEnum("principal_type", ["USER", "CONNECTION", "GROUP", "LINK", "PUBLIC", "SYSTEM_AI"]);
+export const resourceTypeEnum = pgEnum("resource_type", ["OBJECT"]);
+export const actorTypeEnum = pgEnum("actor_type", ["USER", "SYSTEM", "SYSTEM_AI"]);
 
 export const users = pgTable("users", {
   id: uuid("id").primaryKey(),
@@ -62,6 +67,40 @@ export const objectRevisions = pgTable("object_revisions", {
   index("object_revisions_object_created_idx").on(table.objectId, table.createdAt)
 ]);
 
+export const permissionGrants = pgTable("permissions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  ownerId: uuid("owner_id").notNull().references(() => users.id, { onDelete: "restrict" }),
+  resourceType: resourceTypeEnum("resource_type").$type<ResourceType>().notNull(),
+  resourceId: uuid("resource_id").notNull(),
+  principalType: principalTypeEnum("principal_type").$type<PrincipalType>().notNull(),
+  principalId: text("principal_id"),
+  capability: capabilityEnum("capability").$type<Capability>().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+  revokedAt: timestamp("revoked_at", { withTimezone: true, mode: "date" })
+}, (table) => [
+  index("permissions_resource_active_idx").on(table.resourceType, table.resourceId, table.revokedAt),
+  uniqueIndex("permissions_active_grant_uidx")
+    .on(table.resourceType, table.resourceId, table.principalType, sql`coalesce(${table.principalId}, '')`, table.capability)
+    .where(sql`${table.revokedAt} IS NULL`)
+]);
+
+export const auditLogs = pgTable("audit_logs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  actorUserId: uuid("actor_user_id").references(() => users.id, { onDelete: "restrict" }),
+  actorType: actorTypeEnum("actor_type").notNull(),
+  action: text("action").notNull(),
+  resourceType: resourceTypeEnum("resource_type").$type<ResourceType>(),
+  resourceId: uuid("resource_id"),
+  requestId: text("request_id"),
+  metadata: jsonb("metadata").$type<Record<string, string | number | boolean | null>>(),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow()
+}, (table) => [
+  index("audit_logs_resource_created_idx").on(table.resourceType, table.resourceId, table.createdAt),
+  index("audit_logs_actor_created_idx").on(table.actorUserId, table.createdAt)
+]);
+
 export type UserRow = typeof users.$inferSelect;
 export type ObjectRow = typeof objects.$inferSelect;
 export type ObjectRevisionRow = typeof objectRevisions.$inferSelect;
+export type PermissionGrantRow = typeof permissionGrants.$inferSelect;
+export type AuditLogRow = typeof auditLogs.$inferSelect;

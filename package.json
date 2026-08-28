@@ -1,6 +1,6 @@
 {
   "name": "lifegraph",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "packageManager": "pnpm@11.19.0",
   "engines": {
@@ -15,7 +15,8 @@
     "test:watch": "vitest",
     "verify:foundation": "node scripts/verify-foundation.mjs",
     "verify:core": "node scripts/verify-object-revision-core.mjs && pnpm db:check",
-    "check": "pnpm verify:foundation && pnpm verify:core && pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+    "verify:permissions": "node scripts/verify-permission-engine.mjs",
+    "check": "pnpm verify:foundation && pnpm verify:core && pnpm verify:permissions && pnpm lint && pnpm typecheck && pnpm test && pnpm build",
     "db:generate": "pnpm --filter @lifegraph/db db:generate",
     "db:migrate": "pnpm --filter @lifegraph/db db:migrate",
     "db:check": "pnpm --filter @lifegraph/db db:check"
