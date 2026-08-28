@@ -2,7 +2,7 @@
 
 LifeGraph is a private-by-default Personal Internet: one user-owned source of truth that can power a private library, trusted AI assistance, and explicitly authorized public views.
 
-This repository contains the **Foundation**, **Object + Revision Core**, and **Permission Engine** milestones. Rich editing, graph, AI, retrieval, imports, and Living Identity are intentionally not implemented yet.
+This repository contains the **Foundation**, **Object + Revision Core**, **Permission Engine**, and **Editor** milestones. Graph, AI, retrieval, imports, and Living Identity are intentionally not implemented yet.
 
 ## Requirements
 
@@ -20,7 +20,7 @@ pnpm db:migrate
 pnpm dev
 ```
 
-Open `http://localhost:3000`. The root page is public. `/auth` provides email/password sign-up and sign-in through the configured authentication provider. `/library` can create private notes, display objects, inspect immutable revisions, and restore an older snapshot as a new revision. `/api/health` reports application readiness without exposing secrets.
+Open `http://localhost:3000`. The root page is public. `/auth` provides email/password sign-up and sign-in through the configured authentication provider. `/library` can create private notes, edit block snapshots with autosave, recover a local draft after refresh, compare immutable revisions, and restore an older snapshot as a new revision. `/api/health` reports application readiness without exposing secrets.
 
 ## Commands
 
@@ -78,6 +78,17 @@ See `docs/runbooks/object-api.md` for the versioned API contract.
 
 See `docs/runbooks/permission-api.md` for the grant and revoke API.
 
+## Editor invariants
+
+- Manual saves send a complete validated snapshot and the expected current revision.
+- Autosave is serialized and never overwrites a newer revision; HTTP 409 keeps the local draft for reconciliation.
+- Each edit is written to local storage before its debounced network save, so refresh and transient disconnects do not discard the device-local draft.
+- Identical snapshots are a no-op and do not create revision noise.
+- Read-only users never receive editing or restore controls.
+- Revision comparison is deterministic and restore requires explicit confirmation.
+
+See `docs/runbooks/editor.md` for behavior and verification.
+
 ## Current boundary
 
-The next milestone is the **Editor**: deterministic manual edits, autosave, revision comparison, and conflict-aware restore UI built on the authorization and revision boundaries now in place.
+The next milestone is the **Graph**: user-created relationships and related-object navigation built on the same permission boundary.
