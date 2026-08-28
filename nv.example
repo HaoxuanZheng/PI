@@ -1,0 +1,12 @@
+# Public Supabase project configuration
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=replace-me
+
+# Server-only database connection. Keep this out of browser code.
+DATABASE_URL=postgresql://postgres:password@localhost:5432/lifegraph
+
+# Public application origin used for auth redirects.
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+
+# Optional in development; required in production.
+SENTRY_DSN=

@@ -1,0 +1,24 @@
+{
+  "name": "@lifegraph/db",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx src/migrate.ts",
+    "db:check": "node scripts/check-migrations.mjs"
+  },
+  "dependencies": {
+    "@lifegraph/config": "workspace:*",
+    "@lifegraph/domain": "workspace:*",
+    "drizzle-orm": "0.44.5",
+    "postgres": "3.4.7"
+  },
+  "devDependencies": {
+    "drizzle-kit": "0.31.4",
+    "tsx": "4.20.5",
+    "typescript": "5.9.2"
+  }
+}

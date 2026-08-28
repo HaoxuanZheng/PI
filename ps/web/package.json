@@ -1,0 +1,26 @@
+{
+  "name": "@lifegraph/web",
+  "version": "0.2.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@lifegraph/auth": "workspace:*",
+    "@lifegraph/config": "workspace:*",
+    "@lifegraph/db": "workspace:*",
+    "@lifegraph/domain": "workspace:*",
+    "next": "16.3.3",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "zod": "4.1.5"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.4",
+    "@types/react-dom": "19.2.3",
+    "typescript": "5.9.2"
+  }
+}
