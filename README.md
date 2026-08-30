@@ -107,6 +107,7 @@ See `docs/runbooks/graph-api.md` for the relationship API.
 - Proposal metadata is immutable and private to the creating user under RLS.
 - V0.7 exposes only server-generated proposal, Accept, and Reject endpoints. AI still cannot write canonical objects without an explicit user Accept.
 - V0.8 adds permission-first, revision-bound hybrid retrieval over reproducible embedding chunks.
+- V0.9 adds evidence-grounded Ask My Life with classification, citations, abstention, and person disambiguation.
 
 See `docs/runbooks/ai-infrastructure.md` for adapter and operation rules.
 

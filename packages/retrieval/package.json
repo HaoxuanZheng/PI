@@ -1,1 +1,1 @@
-{"name":"@lifegraph/retrieval","version":"0.8.0","private":true,"type":"module","exports":{".":"./src/index.ts"},"scripts":{"typecheck":"tsc --noEmit"},"dependencies":{"@lifegraph/domain":"workspace:*"},"devDependencies":{"typescript":"5.9.2","vitest":"3.2.4"}}
+{"name":"@lifegraph/retrieval","version":"0.9.0","private":true,"type":"module","exports":{".":"./src/index.ts"},"scripts":{"typecheck":"tsc --noEmit"},"dependencies":{"@lifegraph/domain":"workspace:*"},"devDependencies":{"typescript":"5.9.2","vitest":"3.2.4"}}
