@@ -1,6 +1,7 @@
 import type { AuthUser } from "@lifegraph/auth";
-import { AIOperationDecisionError, AIOperationNotFoundError, AIOperationValidationError, FileNotFoundError, FileStateError, ImportNotFoundError, ImportStateError, MergeCandidateNotFoundError, MergeCandidateStateError, MergeNotApplicableError, ObjectNotFoundError, ObjectTypeConflictError, PermissionDeniedError, PermissionNotFoundError, RelationshipNotFoundError, RelationshipValidationError, RetrievalValidationError, RevisionConflictError } from "@lifegraph/db";
+import { AIOperationDecisionError, AIOperationNotFoundError, AIOperationValidationError, FileNotFoundError, FileStateError, ImportNotFoundError, ImportStateError, MergeCandidateNotFoundError, MergeCandidateStateError, MergeNotApplicableError, PublicationNotFoundError, PublicationStateError, ObjectNotFoundError, ObjectTypeConflictError, PermissionDeniedError, PermissionNotFoundError, RelationshipNotFoundError, RelationshipValidationError, RetrievalValidationError, RevisionConflictError } from "@lifegraph/db";
 import { ImportValidationError } from "@lifegraph/imports";
+import { PublicationValidationError } from "@lifegraph/publications";
 import { ImportProviderError } from "@lifegraph/imports/google-drive";
 import { StorageValidationError } from "@lifegraph/storage";
 import { StorageProviderError } from "@lifegraph/storage/supabase";
@@ -63,6 +64,9 @@ export function handleApiError(error: unknown, currentRequestId: string) {
   if (error instanceof AIOperationValidationError) return apiError("AI_OUTPUT_INVALID", error.message, 400, currentRequestId);
   if (error instanceof RetrievalValidationError) return apiError("RETRIEVAL_INVALID", error.message, 400, currentRequestId);
   if (error instanceof StorageValidationError || error instanceof ImportValidationError) return apiError("VALIDATION_FAILED", error.message, 400, currentRequestId);
+  if (error instanceof PublicationValidationError) return apiError("VALIDATION_FAILED", error.message, 400, currentRequestId);
+  if (error instanceof PublicationStateError) return apiError("PUBLICATION_STATE_CONFLICT", error.message, 409, currentRequestId);
+  if (error instanceof PublicationNotFoundError) return apiError("NOT_FOUND", "The publication was not found.", 404, currentRequestId);
   if (error instanceof MergeNotApplicableError) return apiError("VALIDATION_FAILED", error.message, 400, currentRequestId);
   if (error instanceof MergeCandidateStateError) return apiError("MERGE_STATE_CONFLICT", error.message, 409, currentRequestId);
   if (error instanceof MergeCandidateNotFoundError) return apiError("NOT_FOUND", "The merge candidate was not found.", 404, currentRequestId);

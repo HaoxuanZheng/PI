@@ -32,3 +32,4 @@ export * from "./repositories/retrieval";
 export * from "./repositories/files";
 export * from "./repositories/imports";
 export * from "./repositories/entities";
+export * from "./repositories/publications";

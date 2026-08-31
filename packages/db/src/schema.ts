@@ -3,6 +3,7 @@ import type { AIPatchProposal, AIContextManifest } from "@lifegraph/ai";
 import type { Capability, PrincipalType, ResourceType } from "@lifegraph/permissions";
 import type { MatchConfidence, MatchSignal } from "@lifegraph/entities";
 import type { ImportProviderName, ImportStatus } from "@lifegraph/imports";
+import type { PublicSnapshot, PublicationStatus, PublicationType } from "@lifegraph/publications";
 import type { FileCategory } from "@lifegraph/storage";
 import { sql } from "drizzle-orm";
 import { bigint, index, integer, jsonb, numeric, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid, vector } from "drizzle-orm/pg-core";
@@ -20,6 +21,8 @@ export const principalTypeEnum = pgEnum("principal_type", ["USER", "CONNECTION",
 export const resourceTypeEnum = pgEnum("resource_type", ["OBJECT"]);
 export const actorTypeEnum = pgEnum("actor_type", ["USER", "SYSTEM", "SYSTEM_AI"]);
 export const relationshipTypeEnum = pgEnum("relationship_type", ["MENTIONS", "RELATED_TO", "PART_OF", "WORKED_ON", "ATTENDED", "KNOWS", "USES_SKILL"]);
+export const publicationTypeEnum = pgEnum("publication_type", ["PROFILE", "PROFESSIONAL", "OBJECT"]);
+export const publicationStatusEnum = pgEnum("publication_status", ["PUBLISHED", "UNPUBLISHED"]);
 export const entityMergeStatusEnum = pgEnum("entity_merge_status", ["PENDING", "MERGED", "SEPARATE"]);
 export const entityMatchConfidenceEnum = pgEnum("entity_match_confidence", ["HIGH", "MEDIUM", "LOW"]);
 export const importProviderEnum = pgEnum("import_provider", ["GOOGLE_DRIVE", "NOTION", "GOOGLE_CONTACTS"]);
@@ -204,6 +207,27 @@ export const entityMerges = pgTable("entity_merges", {
   index("entity_merges_owner_created_idx").on(table.ownerId, table.createdAt)
 ]);
 
+export const publications = pgTable("publications", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  ownerId: uuid("owner_id").notNull().references(() => users.id, { onDelete: "restrict" }),
+  sourceObjectId: uuid("source_object_id").references(() => objects.id, { onDelete: "restrict" }),
+  // Denormalised from users.username on publish so an anonymous read never joins users.
+  handle: text("handle").notNull(),
+  slug: text("slug").notNull(),
+  publicationType: publicationTypeEnum("publication_type").$type<PublicationType>().notNull(),
+  publicSnapshot: jsonb("public_snapshot").$type<PublicSnapshot>().notNull(),
+  publishedRevisionId: uuid("published_revision_id").references(() => objectRevisions.id, { onDelete: "restrict" }),
+  status: publicationStatusEnum("status").$type<PublicationStatus>().notNull().default("PUBLISHED"),
+  publishedAt: timestamp("published_at", { withTimezone: true, mode: "date" }),
+  updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+  unpublishedAt: timestamp("unpublished_at", { withTimezone: true, mode: "date" })
+}, (table) => [
+  uniqueIndex("publications_owner_slug_uidx").on(table.ownerId, table.slug),
+  uniqueIndex("publications_handle_slug_uidx").on(table.handle, table.slug),
+  index("publications_handle_status_idx").on(table.handle, table.publicationType, table.status),
+  index("publications_status_idx").on(table.status, table.publicationType)
+]);
+
 export const auditLogs = pgTable("audit_logs", {
   id: uuid("id").primaryKey().defaultRandom(),
   actorUserId: uuid("actor_user_id").references(() => users.id, { onDelete: "restrict" }),
@@ -231,3 +255,4 @@ export type FileRow = typeof files.$inferSelect;
 export type ImportRow = typeof imports.$inferSelect;
 export type EntityMergeCandidateRow = typeof entityMergeCandidates.$inferSelect;
 export type EntityMergeRow = typeof entityMerges.$inferSelect;
+export type PublicationRow = typeof publications.$inferSelect;

@@ -2,7 +2,7 @@
 
 LifeGraph is a private-by-default Personal Internet: one user-owned source of truth that can power a private library, trusted AI assistance, and explicitly authorized public views.
 
-This repository contains the **Foundation**, **Object + Revision Core**, **Permission Engine**, **Editor**, **Graph**, **AI Infrastructure**, **Inline AI**, **Embeddings + Retrieval**, **Ask My Life**, **Capture + Files**, the **Import Framework**, **Entity Resolution + Contacts**, and the **Notion importer** milestones. Living Identity, sharing, and alpha hardening are intentionally not implemented yet.
+This repository contains the **Foundation**, **Object + Revision Core**, **Permission Engine**, **Editor**, **Graph**, **AI Infrastructure**, **Inline AI**, **Embeddings + Retrieval**, **Ask My Life**, **Capture + Files**, the **Import Framework**, **Entity Resolution + Contacts**, the **Notion importer**, and **Living Identity** milestones. Alpha hardening is intentionally not implemented yet.
 
 ## Requirements
 
@@ -50,6 +50,7 @@ Database-backed integration tests run when `TEST_DATABASE_URL` points to a dispo
 - `packages/storage`: upload validation, storage key derivation, and the object storage port
 - `packages/imports`: provider contract, content hashing, and the Google Drive, Contacts, and Notion adapters
 - `packages/entities`: deterministic person matching signals and profile merging
+- `packages/publications`: public projection allowlist, profile projection, and share URLs
 - `docs/architecture`: architecture decision records
 - `docs/runbooks`: deployment and operational instructions
 - `docs/product`: product thesis and technical specification
@@ -66,7 +67,7 @@ Browser code may only access `NEXT_PUBLIC_*` variables. `DATABASE_URL` and futur
 - Restore never rewrites history.
 - `expectedRevisionId` and row locks prevent stale writes.
 - Application owner filters and PostgreSQL RLS both isolate users.
-- Public reads are not implemented; `PUBLIC` is currently only stored state and exposes nothing.
+- Canonical objects are never publicly readable. Anonymous access is served exclusively by publication projections.
 
 See `docs/runbooks/object-api.md` for the versioned API contract.
 
@@ -75,7 +76,7 @@ See `docs/runbooks/object-api.md` for the versioned API contract.
 - Every object read, update, restore, or delete passes through the centralized capability engine.
 - Active USER grants can provide READ, COMMENT, EDIT, COLLABORATE, SHARE, or ADMIN capabilities.
 - Only the owner can manage grants in V0.3; ADMIN cannot silently delegate access.
-- Public grants cannot expose canonical objects. Anonymous pages must eventually use publication projections.
+- Public grants cannot expose canonical objects. Anonymous pages read publication projections only.
 - Permission changes and sensitive object actions create metadata-only audit events.
 - Application authorization and PostgreSQL RLS enforce the same direct-user access boundary.
 
@@ -151,10 +152,22 @@ See `docs/runbooks/imports.md` for the import API and operational limits.
 
 See `docs/runbooks/entities.md` for the detection and merge API.
 
+## Living Identity invariants
+
+- Public reads come from `publications` and nowhere else: the anonymous path never joins objects, revisions, or users, and never sets an owner context.
+- The projection is an allowlist of `title`, `summary`, `body`, and `tags`. `customFields` can never be published, so importer metadata and contact detail cannot leak.
+- Naming a forbidden or unknown field fails loudly rather than being silently dropped.
+- A PERSON object can never be published, because contact records exist to hold emails and phone numbers.
+- Publishing requires SHARE, an explicit confirmation, and the expected current revision; preview runs the same projection that publishing stores.
+- A publication is frozen to a revision, so later edits never silently change what is public. Drift is reported as stale.
+- Unpublishing is immediate, and deleting a source object unpublishes it automatically.
+
+See `docs/runbooks/publications.md` for the publish, preview, and sharing contract.
+
 ## Current boundary
 
-Milestones through the **Notion importer** (V0.13) are implemented, which completes the three prioritised importers. Living Identity, sharing, and alpha hardening are intentionally not implemented yet.
+Milestones through **Living Identity** (V0.14) are implemented. Alpha hardening is intentionally not implemented yet.
 
-Deliberate gaps are recorded in the architecture decision records: there is no OAuth consent flow, so Drive and Contacts use operator-supplied read-only tokens (`0016`); import batches are driven by explicit requests rather than a background worker (`0016`); imported binaries do not yet create `files` rows (`0016`); merge undo is not exposed, because reversing a merge cannot yet restore the source object's invalidated embeddings and file bytes (`0017`); and only top-level Notion blocks are read (`0018`).
+Deliberate gaps are recorded in the architecture decision records: no OAuth consent flow, so importers use operator-supplied read-only tokens (`0016`); import batches are driven by explicit requests rather than a background worker (`0016`); imported binaries do not yet create `files` rows (`0016`); merge undo is not exposed (`0017`); only top-level Notion blocks are read (`0018`); and no QR image encoder is bundled, so rendering a share code is a client concern (`0019`).
 
-The next milestone is **Living Identity**: `@username`, a public profile projection, a Professional View, preview before publish, and publish/unpublish with QR sharing. It is the first milestone where private data becomes an authorized public projection, so it must read from a publication record rather than any canonical object path, and `PUBLIC` visibility must stop being inert stored state.
+The final milestone is **Alpha hardening**: account export and deletion, rate limiting, admin MFA, onboarding, analytics, and monitoring. Two items are prerequisites rather than polish. The database-backed integration tests have never been executed, so every migration from `0007` onward is unverified against a real PostgreSQL instance. The specification also requires legal and compliance review before public launch, which `0019` makes technically possible but does not discharge.
