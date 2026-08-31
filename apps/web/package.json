@@ -1,6 +1,6 @@
 {
   "name": "@lifegraph/web",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -15,6 +15,7 @@
     "@lifegraph/config": "workspace:*",
     "@lifegraph/db": "workspace:*",
     "@lifegraph/domain": "workspace:*",
+    "@lifegraph/imports": "workspace:*",
     "@lifegraph/permissions": "workspace:*",
     "@lifegraph/storage": "workspace:*",
     "next": "16.3.3",

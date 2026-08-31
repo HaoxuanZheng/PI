@@ -1,4 +1,5 @@
 import type { CreateObjectInput, ObjectSnapshot, RestoreRevisionInput, UpdateObjectInput } from "@lifegraph/domain";
+import { decideImportAction, type ImportAction, type ImportProviderName } from "@lifegraph/imports";
 import { and, desc, eq, isNull, sql as statement } from "drizzle-orm";
 import type { DatabaseClient } from "../index";
 import { auditLogs, objectRevisions, objects, users } from "../schema";
@@ -105,6 +106,103 @@ export function createObjectRepository(client: DatabaseClient) {
           .returning();
         if (!updated) throw new Error("Object current revision update returned no row");
         return { object: updated, currentRevision: revision };
+      });
+    },
+
+    /**
+     * Applies one normalised imported record. Provenance lives on the object, so a repeated import
+     * of an unchanged source is a SKIP rather than a duplicate object or a redundant revision.
+     * Imported objects are always PRIVATE and their revisions are attributed to IMPORT.
+     */
+    async applyImported(ownerId: string, input: {
+      provider: ImportProviderName;
+      sourceExternalId: string;
+      contentHash: string;
+      sourceModifiedAt: string | null;
+      snapshot: ObjectSnapshot;
+    }): Promise<{ action: ImportAction; result: ObjectWithCurrentRevision }> {
+      return client.db.transaction(async (transaction) => {
+        await setOwnerContext(transaction, ownerId);
+        const [existing] = await transaction.select().from(objects)
+          .where(and(
+            eq(objects.ownerId, ownerId),
+            eq(objects.sourceType, input.provider),
+            eq(objects.sourceExternalId, input.sourceExternalId),
+            isNull(objects.deletedAt)
+          ))
+          .for("update")
+          .limit(1);
+
+        const action = decideImportAction(
+          existing ? { objectId: existing.id, contentHash: existing.sourceContentHash } : null,
+          { contentHash: input.contentHash }
+        );
+
+        if (action === "SKIP" && existing) {
+          const current = await readCurrent(transaction, existing.id);
+          if (!current) throw new ObjectNotFoundError();
+          return { action, result: current };
+        }
+
+        const modifiedAt = toDate(input.sourceModifiedAt);
+
+        if (action === "CREATE") {
+          const [object] = await transaction.insert(objects).values({
+            ownerId,
+            type: input.snapshot.type,
+            title: input.snapshot.title ?? null,
+            summary: input.snapshot.summary ?? null,
+            visibility: "PRIVATE",
+            sourceType: input.provider,
+            sourceExternalId: input.sourceExternalId,
+            sourceContentHash: input.contentHash,
+            sourceModifiedAt: modifiedAt
+          }).returning();
+          if (!object) throw new Error("Imported object insert returned no row");
+
+          const [revision] = await transaction.insert(objectRevisions).values({
+            objectId: object.id,
+            snapshot: input.snapshot,
+            changeType: "CREATE",
+            createdByType: "IMPORT",
+            createdByUserId: ownerId
+          }).returning();
+          if (!revision) throw new Error("Imported revision insert returned no row");
+
+          const [updated] = await transaction.update(objects)
+            .set({ currentRevisionId: revision.id, updatedAt: revision.createdAt })
+            .where(and(eq(objects.id, object.id), eq(objects.ownerId, ownerId)))
+            .returning();
+          if (!updated) throw new Error("Imported object current revision update returned no row");
+          return { action, result: { object: updated, currentRevision: revision } };
+        }
+
+        if (!existing || !existing.currentRevisionId) throw new ObjectNotFoundError();
+        // An import may not change an object's type between revisions, matching manual edits.
+        if (existing.type !== input.snapshot.type) throw new ObjectTypeConflictError("An object's type cannot change between revisions");
+
+        const [revision] = await transaction.insert(objectRevisions).values({
+          objectId: existing.id,
+          previousRevisionId: existing.currentRevisionId,
+          snapshot: input.snapshot,
+          changeType: "UPDATE",
+          createdByType: "IMPORT",
+          createdByUserId: ownerId
+        }).returning();
+        if (!revision) throw new Error("Imported revision insert returned no row");
+
+        await transaction.update(objects).set({
+          title: input.snapshot.title ?? null,
+          summary: input.snapshot.summary ?? null,
+          sourceContentHash: input.contentHash,
+          sourceModifiedAt: modifiedAt,
+          currentRevisionId: revision.id,
+          updatedAt: revision.createdAt
+        }).where(eq(objects.id, existing.id));
+
+        const current = await readCurrent(transaction, existing.id);
+        if (!current) throw new ObjectNotFoundError();
+        return { action, result: current };
       });
     },
 

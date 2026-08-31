@@ -2,7 +2,7 @@
 
 LifeGraph is a private-by-default Personal Internet: one user-owned source of truth that can power a private library, trusted AI assistance, and explicitly authorized public views.
 
-This repository contains the **Foundation**, **Object + Revision Core**, **Permission Engine**, **Editor**, **Graph**, **AI Infrastructure**, **Inline AI**, **Embeddings + Retrieval**, **Ask My Life**, and **Capture + Files** milestones. Imports, Living Identity, sharing, and alpha hardening are intentionally not implemented yet.
+This repository contains the **Foundation**, **Object + Revision Core**, **Permission Engine**, **Editor**, **Graph**, **AI Infrastructure**, **Inline AI**, **Embeddings + Retrieval**, **Ask My Life**, **Capture + Files**, and the **Import Framework** milestones. Living Identity, sharing, and alpha hardening are intentionally not implemented yet.
 
 ## Requirements
 
@@ -48,6 +48,7 @@ Database-backed integration tests run when `TEST_DATABASE_URL` points to a dispo
 - `packages/permissions`: centralized capability decisions and permission schemas
 - `packages/shared`: provider-neutral shared types
 - `packages/storage`: upload validation, storage key derivation, and the object storage port
+- `packages/imports`: provider contract, content hashing, and the Google Drive adapter
 - `docs/architecture`: architecture decision records
 - `docs/runbooks`: deployment and operational instructions
 - `docs/product`: product thesis and technical specification
@@ -123,8 +124,22 @@ See `docs/runbooks/ai-infrastructure.md` for adapter and operation rules.
 
 See `docs/runbooks/files.md` for the upload, download, and deletion contract.
 
+## Import invariants
+
+- One external record maps to at most one live object per owner and provider, enforced by a partial unique index.
+- Idempotency is a SHA-256 hash of mapped content: unchanged sources are skipped, changed sources append a revision, and a replayed import creates no duplicates.
+- Imported objects are always written `PRIVATE` with `createdByType = IMPORT`; an importer cannot set visibility.
+- Each batch commits its cursor, so an interrupted or failed run resumes rather than restarting.
+- Only one `PENDING`/`RUNNING` run exists per user and provider.
+- A single bad record is recorded and skipped; only a provider-level failure fails the run.
+- Providers only read and normalise, and never write to the database.
+
+See `docs/runbooks/imports.md` for the import API and operational limits.
+
 ## Current boundary
 
-Milestones through **Capture + Files** (V0.10) are implemented. Imports, Living Identity, sharing, and alpha hardening are intentionally not implemented yet.
+Milestones through the **Import Framework** (V0.11) are implemented. Living Identity, sharing, and alpha hardening are intentionally not implemented yet.
 
-The next milestone is the **Import Framework**: a generic provider contract with resumable job state, dedupe, and idempotency, with Google Drive first. Imported content must default to `PRIVATE` and reuse the file capture path rather than writing storage directly. Entity resolution for people, and object-level full-text search, remain adjacent infrastructure that imports will require.
+Three gaps inside the import milestone are deliberate and tracked in `docs/architecture/0016-idempotent-import-framework.md`: there is no OAuth consent flow (Drive uses an operator-supplied read-only token), batches are driven by explicit requests rather than a background worker, and imported binaries do not yet create `files` rows.
+
+The next milestone is **Notion + Contacts**, which requires entity resolution for people: deterministic match signals before AI, with merges always reversible or auditable. **Living Identity** follows, and it is the first milestone where private data becomes an authorized public projection, so it must not reuse any canonical object read path.
