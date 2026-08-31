@@ -2,7 +2,7 @@
 
 LifeGraph is a private-by-default Personal Internet: one user-owned source of truth that can power a private library, trusted AI assistance, and explicitly authorized public views.
 
-This repository contains the **Foundation**, **Object + Revision Core**, **Permission Engine**, **Editor**, **Graph**, **AI Infrastructure**, **Inline AI**, **Embeddings + Retrieval**, **Ask My Life**, **Capture + Files**, the **Import Framework**, and **Entity Resolution + Contacts** milestones. The Notion importer, Living Identity, sharing, and alpha hardening are intentionally not implemented yet.
+This repository contains the **Foundation**, **Object + Revision Core**, **Permission Engine**, **Editor**, **Graph**, **AI Infrastructure**, **Inline AI**, **Embeddings + Retrieval**, **Ask My Life**, **Capture + Files**, the **Import Framework**, **Entity Resolution + Contacts**, and the **Notion importer** milestones. Living Identity, sharing, and alpha hardening are intentionally not implemented yet.
 
 ## Requirements
 
@@ -48,7 +48,7 @@ Database-backed integration tests run when `TEST_DATABASE_URL` points to a dispo
 - `packages/permissions`: centralized capability decisions and permission schemas
 - `packages/shared`: provider-neutral shared types
 - `packages/storage`: upload validation, storage key derivation, and the object storage port
-- `packages/imports`: provider contract, content hashing, and the Google Drive and Contacts adapters
+- `packages/imports`: provider contract, content hashing, and the Google Drive, Contacts, and Notion adapters
 - `packages/entities`: deterministic person matching signals and profile merging
 - `docs/architecture`: architecture decision records
 - `docs/runbooks`: deployment and operational instructions
@@ -134,6 +134,8 @@ See `docs/runbooks/files.md` for the upload, download, and deletion contract.
 - Only one `PENDING`/`RUNNING` run exists per user and provider.
 - A single bad record is recorded and skipped; only a provider-level failure fails the run.
 - Providers only read and normalise, and never write to the database.
+- All three prioritised importers are implemented: Google Drive, Google Contacts, and Notion.
+- A Notion database page with a populated email becomes a PERSON, so imported contacts feed entity resolution rather than accumulating silently.
 
 See `docs/runbooks/imports.md` for the import API and operational limits.
 
@@ -151,8 +153,8 @@ See `docs/runbooks/entities.md` for the detection and merge API.
 
 ## Current boundary
 
-Milestones through **Entity Resolution + Contacts** (V0.12) are implemented. The Notion importer, Living Identity, sharing, and alpha hardening are intentionally not implemented yet.
+Milestones through the **Notion importer** (V0.13) are implemented, which completes the three prioritised importers. Living Identity, sharing, and alpha hardening are intentionally not implemented yet.
 
-Deliberate gaps are recorded in the architecture decision records: there is no OAuth consent flow, so Drive and Contacts use operator-supplied read-only tokens (`0016`); import batches are driven by explicit requests rather than a background worker (`0016`); imported binaries do not yet create `files` rows (`0016`); and merge undo is not exposed, because reversing a merge cannot yet restore the source object's invalidated embeddings and file bytes (`0017`).
+Deliberate gaps are recorded in the architecture decision records: there is no OAuth consent flow, so Drive and Contacts use operator-supplied read-only tokens (`0016`); import batches are driven by explicit requests rather than a background worker (`0016`); imported binaries do not yet create `files` rows (`0016`); merge undo is not exposed, because reversing a merge cannot yet restore the source object's invalidated embeddings and file bytes (`0017`); and only top-level Notion blocks are read (`0018`).
 
-The next milestone is the **Notion importer**, which adds no new concepts on top of the import contract. **Living Identity** follows, and it is the first milestone where private data becomes an authorized public projection, so it must not reuse any canonical object read path.
+The next milestone is **Living Identity**: `@username`, a public profile projection, a Professional View, preview before publish, and publish/unpublish with QR sharing. It is the first milestone where private data becomes an authorized public projection, so it must read from a publication record rather than any canonical object path, and `PUBLIC` visibility must stop being inert stored state.

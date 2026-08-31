@@ -7,10 +7,14 @@ to a provider, and imported content is always `PRIVATE`.
 
 | Variable | Required | Notes |
 | --- | --- | --- |
-| `GOOGLE_DRIVE_ACCESS_TOKEN` | for Drive imports | Server-only. A read-only Drive token (`drive.readonly`). V0.11 has no OAuth consent flow, so this is operator-supplied. |
+| `GOOGLE_DRIVE_ACCESS_TOKEN` | for Drive imports | Server-only read-only Drive token (`drive.readonly`). |
+| `GOOGLE_CONTACTS_ACCESS_TOKEN` | for Contacts imports | Server-only read-only People API token (`contacts.readonly`). |
+| `NOTION_API_TOKEN` | for Notion imports | Server-only Notion integration token. Only pages shared with the integration are visible. |
 
-Without it, `POST /api/v1/imports/start` returns `501 IMPORT_PROVIDER_UNAVAILABLE`. Notion and
-Google Contacts return the same status: they exist in the contract but are not implemented.
+There is still no OAuth consent flow, so every provider token is operator-supplied.
+
+A provider without its token returns `501 IMPORT_PROVIDER_UNAVAILABLE`. All three providers are
+implemented; `GOOGLE_DRIVE`, `GOOGLE_CONTACTS`, and `NOTION` are the accepted values.
 
 ## API contract
 
@@ -57,6 +61,16 @@ List runs, or read one. Runs are private to their owner; another user's run is `
 - **Drive mapping.** Google Docs and text-like files become `NOTE` with exported text; images become
   `PHOTO`, audio becomes `VOICE_NOTE`, everything else including PDFs becomes a metadata-only `FILE`.
   Trashed files are skipped. Raw provider metadata is kept under `customFields.source`.
+- **Contacts mapping.** Each contact becomes a `PERSON` with typed detail under
+  `customFields.person`. A contact with neither a name nor an email is skipped.
+- **Notion mapping.** Pages become `NOTE` with top-level textual blocks as the body. A *database*
+  page with a title and a populated email property becomes a `PERSON`, so it feeds entity resolution.
+  Properties are flattened into `customFields.source.properties` and are part of the content hash.
+  Archived and trashed pages are skipped, and the API version is pinned to `2022-06-28`. Only
+  top-level blocks are read: nested trees, tables, and embeds are not represented.
+
+After importing people, run `POST /api/v1/entities/detect` to surface duplicates
+(`docs/runbooks/entities.md`).
 
 ## Verification
 
@@ -78,8 +92,10 @@ provider, cursor-preserving failure with successful resume, and cross-user isola
 
 ## Operational notes
 
-- **No OAuth flow.** `GOOGLE_DRIVE_ACCESS_TOKEN` is a stopgap. Real per-user Drive access needs the
-  consent flow plus encrypted refresh-token storage, which is not built.
+- **No OAuth flow.** Provider tokens are a stopgap. Real per-user access needs the consent flow plus
+  encrypted refresh-token storage, which is not built.
+- **Notion costs an extra request per page** to read its blocks, so a large workspace needs many
+  `continue` calls and may meet Notion's rate limits. A failure preserves the cursor and resumes.
 - **No background worker.** Long imports need repeated `continue` calls. Moving batch execution into
   a job runner is the natural follow-up.
 - **Imported binaries have no bytes.** Drive imports do not yet create `files` rows, so a PDF is a
