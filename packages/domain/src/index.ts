@@ -43,6 +43,31 @@ export const objectSnapshotSchema = z.object({
   customFields: z.record(z.string(), z.unknown()).default({})
 });
 
+/**
+ * Typed detail for PERSON objects, carried under `customFields.person`.
+ *
+ * A fully typed per-type snapshot union is deferred; this keeps `schemaVersion: 1` stable while
+ * giving entity resolution validated fields to compare. Values are stored as provided and
+ * normalised at comparison time, because imported contact data is frequently malformed.
+ */
+export const personProfileSchema = z.object({
+  displayName: z.string().trim().min(1).max(200),
+  organization: z.string().trim().max(200).nullable().default(null),
+  role: z.string().trim().max(200).nullable().default(null),
+  emails: z.array(z.string().trim().min(1).max(320)).max(20).default([]),
+  phones: z.array(z.string().trim().min(1).max(50)).max(20).default([]),
+  interests: z.array(z.string().trim().min(1).max(80)).max(50).default([])
+});
+
+export type PersonProfile = z.infer<typeof personProfileSchema>;
+
+/** Returns validated person detail, or null when the object is not a usable PERSON record. */
+export function readPersonProfile(snapshot: ObjectSnapshot): PersonProfile | null {
+  if (snapshot.type !== "PERSON") return null;
+  const parsed = personProfileSchema.safeParse(snapshot.customFields?.["person"]);
+  return parsed.success ? parsed.data : null;
+}
+
 export const createObjectInputSchema = z.object({
   snapshot: objectSnapshotSchema,
   visibility: visibilitySchema.default("PRIVATE"),

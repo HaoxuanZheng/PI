@@ -2,7 +2,7 @@
 
 LifeGraph is a private-by-default Personal Internet: one user-owned source of truth that can power a private library, trusted AI assistance, and explicitly authorized public views.
 
-This repository contains the **Foundation**, **Object + Revision Core**, **Permission Engine**, **Editor**, **Graph**, **AI Infrastructure**, **Inline AI**, **Embeddings + Retrieval**, **Ask My Life**, **Capture + Files**, and the **Import Framework** milestones. Living Identity, sharing, and alpha hardening are intentionally not implemented yet.
+This repository contains the **Foundation**, **Object + Revision Core**, **Permission Engine**, **Editor**, **Graph**, **AI Infrastructure**, **Inline AI**, **Embeddings + Retrieval**, **Ask My Life**, **Capture + Files**, the **Import Framework**, and **Entity Resolution + Contacts** milestones. The Notion importer, Living Identity, sharing, and alpha hardening are intentionally not implemented yet.
 
 ## Requirements
 
@@ -48,7 +48,8 @@ Database-backed integration tests run when `TEST_DATABASE_URL` points to a dispo
 - `packages/permissions`: centralized capability decisions and permission schemas
 - `packages/shared`: provider-neutral shared types
 - `packages/storage`: upload validation, storage key derivation, and the object storage port
-- `packages/imports`: provider contract, content hashing, and the Google Drive adapter
+- `packages/imports`: provider contract, content hashing, and the Google Drive and Contacts adapters
+- `packages/entities`: deterministic person matching signals and profile merging
 - `docs/architecture`: architecture decision records
 - `docs/runbooks`: deployment and operational instructions
 - `docs/product`: product thesis and technical specification
@@ -136,10 +137,22 @@ See `docs/runbooks/files.md` for the upload, download, and deletion contract.
 
 See `docs/runbooks/imports.md` for the import API and operational limits.
 
+## Entity resolution invariants
+
+- Duplicate detection uses deterministic signals only; AI is not involved in this path.
+- A pair's score is its strongest signal, never a sum, so weak agreements cannot imitate an identifier.
+- A shared name alone never surfaces as a duplicate; an organisation must corroborate it.
+- Nothing merges automatically, including an exact provider id match. Every merge is an explicit user decision.
+- A merge appends a revision to the surviving object and soft-deletes the other with its own revision, so neither loses history.
+- Every merge records the revisions on both sides, making it auditable. Both objects require EDIT.
+- A decided pair is never re-proposed, so "keep separate" is durable.
+
+See `docs/runbooks/entities.md` for the detection and merge API.
+
 ## Current boundary
 
-Milestones through the **Import Framework** (V0.11) are implemented. Living Identity, sharing, and alpha hardening are intentionally not implemented yet.
+Milestones through **Entity Resolution + Contacts** (V0.12) are implemented. The Notion importer, Living Identity, sharing, and alpha hardening are intentionally not implemented yet.
 
-Three gaps inside the import milestone are deliberate and tracked in `docs/architecture/0016-idempotent-import-framework.md`: there is no OAuth consent flow (Drive uses an operator-supplied read-only token), batches are driven by explicit requests rather than a background worker, and imported binaries do not yet create `files` rows.
+Deliberate gaps are recorded in the architecture decision records: there is no OAuth consent flow, so Drive and Contacts use operator-supplied read-only tokens (`0016`); import batches are driven by explicit requests rather than a background worker (`0016`); imported binaries do not yet create `files` rows (`0016`); and merge undo is not exposed, because reversing a merge cannot yet restore the source object's invalidated embeddings and file bytes (`0017`).
 
-The next milestone is **Notion + Contacts**, which requires entity resolution for people: deterministic match signals before AI, with merges always reversible or auditable. **Living Identity** follows, and it is the first milestone where private data becomes an authorized public projection, so it must not reuse any canonical object read path.
+The next milestone is the **Notion importer**, which adds no new concepts on top of the import contract. **Living Identity** follows, and it is the first milestone where private data becomes an authorized public projection, so it must not reuse any canonical object read path.
