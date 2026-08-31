@@ -10,6 +10,7 @@ import {
 } from "../src/index";
 import { createGoogleDriveProvider, driveObjectType, normalizeDriveFile, type DriveTransport } from "../src/google-drive";
 import { createGoogleContactsProvider, normalizeContact, type ContactsTransport } from "../src/google-contacts";
+import { createNotionProvider, normalizeNotionPage, notionApiVersion, notionPropertyValue, type NotionTransport } from "../src/notion";
 
 const driveDoc = {
   id: "drive-1",
@@ -194,5 +195,129 @@ describe("contacts normalisation", () => {
 
   it("requires an access token", () => {
     expect(() => createGoogleContactsProvider({ accessToken: " " })).toThrow(ImportValidationError);
+  });
+});
+
+describe("notion normalisation", () => {
+  const page = {
+    id: "notion-1",
+    url: "https://notion.so/notion-1",
+    last_edited_time: "2026-08-02T09:00:00.000Z",
+    parent: { type: "page_id", page_id: "parent-1" },
+    properties: {
+      Name: { type: "title", title: [{ plain_text: "Launch plan" }] },
+      Stage: { type: "select", select: { name: "Active" } },
+      Tags: { type: "multi_select", multi_select: [{ name: "AI" }, { name: "MVP" }] },
+      Done: { type: "checkbox", checkbox: false },
+      Notes: { type: "rich_text", rich_text: [{ plain_text: "context" }] }
+    }
+  };
+
+  const contactPage = {
+    id: "notion-2",
+    parent: { type: "database_id", database_id: "db-1" },
+    properties: {
+      Name: { type: "title", title: [{ plain_text: "Riya Shah" }] },
+      Email: { type: "email", email: "riya@example.com" },
+      Phone: { type: "phone_number", phone_number: "+1 415 555 0100" },
+      Company: { type: "select", select: { name: "Example Labs" } }
+    }
+  };
+
+  it("maps a page to a NOTE and preserves properties as source metadata", () => {
+    const item = normalizeNotionPage(page, { body: "line one" });
+    expect(item.snapshot.type).toBe("NOTE");
+    expect(item.snapshot.title).toBe("Launch plan");
+    expect(item.snapshot.body).toEqual({ format: "plain_text", content: "line one" });
+    expect(item.snapshot.customFields).toMatchObject({
+      source: {
+        provider: "NOTION",
+        externalId: "notion-1",
+        parentType: "page_id",
+        properties: { Stage: "Active", Tags: ["AI", "MVP"], Done: false, Notes: "context" }
+      }
+    });
+    expect(item.sourceModifiedAt).toBe("2026-08-02T09:00:00.000Z");
+  });
+
+  it("flattens each supported property type and records unsupported ones as absent", () => {
+    expect(notionPropertyValue({ type: "number", number: 7 })).toBe(7);
+    expect(notionPropertyValue({ type: "date", date: { start: "2026-08-02" } })).toBe("2026-08-02");
+    expect(notionPropertyValue({ type: "url", url: "https://example.com" })).toBe("https://example.com");
+    expect(notionPropertyValue({ type: "relation" })).toBeNull();
+  });
+
+  it("maps a database page with an email to a PERSON usable by entity resolution", () => {
+    const item = normalizeNotionPage(contactPage);
+    expect(item.snapshot.type).toBe("PERSON");
+    expect(item.snapshot.customFields).toMatchObject({
+      person: { displayName: "Riya Shah", emails: ["riya@example.com"], phones: ["+1 415 555 0100"], organization: "Example Labs" }
+    });
+  });
+
+  it("keeps a database page without an email as a NOTE", () => {
+    const item = normalizeNotionPage({ ...contactPage, properties: { Name: contactPage.properties.Name } });
+    expect(item.snapshot.type).toBe("NOTE");
+    expect(item.snapshot.customFields).not.toHaveProperty("person");
+  });
+
+  it("does not treat a page outside a database as a PERSON even with an email", () => {
+    const item = normalizeNotionPage({ ...contactPage, parent: { type: "page_id", page_id: "p1" } });
+    expect(item.snapshot.type).toBe("NOTE");
+  });
+
+  it("rejects a page with neither title nor body", () => {
+    expect(() => normalizeNotionPage({ id: "notion-3", properties: {} })).toThrow(ImportValidationError);
+  });
+
+  it("imports an untitled page that still has body content", () => {
+    const item = normalizeNotionPage({ id: "notion-4", properties: {} }, { body: "orphan text" });
+    expect(item.snapshot.title).toBe("Untitled Notion page");
+  });
+
+  it("changes its hash when a property changes but not on a replay", () => {
+    const first = normalizeNotionPage(page, { body: "line one" });
+    expect(normalizeNotionPage(page, { body: "line one" }).contentHash).toBe(first.contentHash);
+    expect(normalizeNotionPage({ ...page, properties: { ...page.properties, Done: { type: "checkbox", checkbox: true } } }, { body: "line one" }).contentHash)
+      .not.toBe(first.contentHash);
+  });
+
+  it("reads blocks, skips archived pages, and pins the API version", async () => {
+    const calls: string[] = [];
+    const transport: NotionTransport = async (url, init) => {
+      calls.push(`${init.method} ${url}`);
+      expect(init.headers["notion-version"]).toBe(notionApiVersion);
+      if (url.endsWith("/search")) {
+        return { ok: true, status: 200, text: async () => JSON.stringify({ results: [page, { ...page, id: "gone", archived: true }], has_more: false, next_cursor: null }) };
+      }
+      return { ok: true, status: 200, text: async () => JSON.stringify({ results: [
+        { type: "heading_1", heading_1: { rich_text: [{ plain_text: "Heading" }] } },
+        { type: "paragraph", paragraph: { rich_text: [{ plain_text: "Body text" }] } },
+        { type: "image", image: {} }
+      ], next_cursor: null }) };
+    };
+    const batch = await createNotionProvider({ apiToken: "secret", transport }).fetchBatch();
+    expect(batch.items.map((item) => item.sourceExternalId)).toEqual(["notion-1"]);
+    expect(batch.items[0]?.snapshot.body).toEqual({ format: "plain_text", content: "Heading\nBody text" });
+    expect(batch.nextCursor).toBeNull();
+    expect(calls[0]).toBe("POST https://api.notion.com/v1/search");
+  });
+
+  it("stops paging when Notion reports no more results", async () => {
+    const transport: NotionTransport = async (url) => ({
+      ok: true,
+      status: 200,
+      text: async () => url.endsWith("/search")
+        ? JSON.stringify({ results: [], has_more: true, next_cursor: "cursor-2" })
+        : JSON.stringify({ results: [], next_cursor: null })
+    });
+    const batch = await createNotionProvider({ apiToken: "secret", transport }).fetchBatch();
+    expect(batch.nextCursor).toBe("cursor-2");
+  });
+
+  it("requires an API token and surfaces provider failures", async () => {
+    expect(() => createNotionProvider({ apiToken: "  " })).toThrow(ImportValidationError);
+    const transport: NotionTransport = async () => ({ ok: false, status: 429, text: async () => "rate limited" });
+    await expect(createNotionProvider({ apiToken: "secret", transport }).fetchBatch()).rejects.toThrow(/status 429/);
   });
 });
