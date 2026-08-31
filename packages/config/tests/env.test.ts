@@ -30,4 +30,37 @@ describe("environment validation", () => {
       NODE_ENV: "production"
     })).toThrow();
   });
+
+  it("defaults file storage to a private bucket with scanning enforced", () => {
+    expect(parseServerEnv({ ...publicEnv, DATABASE_URL: "postgresql://localhost/lifegraph" })).toMatchObject({
+      STORAGE_BUCKET: "lifegraph-private",
+      STORAGE_REQUIRE_SCAN: true
+    });
+  });
+
+  it("allows disabling the scan gate outside production only", () => {
+    expect(parseServerEnv({
+      ...publicEnv,
+      DATABASE_URL: "postgresql://localhost/lifegraph",
+      STORAGE_REQUIRE_SCAN: "false"
+    })).toMatchObject({ STORAGE_REQUIRE_SCAN: false });
+
+    expect(() => parseServerEnv({
+      ...publicEnv,
+      DATABASE_URL: "postgresql://localhost/lifegraph",
+      NODE_ENV: "production",
+      SENTRY_DSN: "https://sentry.example.com/1",
+      SUPABASE_SERVICE_ROLE_KEY: "service-role",
+      STORAGE_REQUIRE_SCAN: "false"
+    })).toThrow();
+  });
+
+  it("requires a storage service role key in production", () => {
+    expect(() => parseServerEnv({
+      ...publicEnv,
+      DATABASE_URL: "postgresql://localhost/lifegraph",
+      NODE_ENV: "production",
+      SENTRY_DSN: "https://sentry.example.com/1"
+    })).toThrow();
+  });
 });

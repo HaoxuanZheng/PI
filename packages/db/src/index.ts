@@ -29,3 +29,4 @@ export * from "./repositories/permissions";
 export * from "./repositories/relationships";
 export * from "./repositories/ai-operations";
 export * from "./repositories/retrieval";
+export * from "./repositories/files";

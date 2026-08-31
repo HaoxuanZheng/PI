@@ -1,5 +1,7 @@
 import type { AuthUser } from "@lifegraph/auth";
-import { AIOperationDecisionError, AIOperationNotFoundError, AIOperationValidationError, ObjectNotFoundError, ObjectTypeConflictError, PermissionDeniedError, PermissionNotFoundError, RelationshipNotFoundError, RelationshipValidationError, RetrievalValidationError, RevisionConflictError } from "@lifegraph/db";
+import { AIOperationDecisionError, AIOperationNotFoundError, AIOperationValidationError, FileNotFoundError, FileStateError, ObjectNotFoundError, ObjectTypeConflictError, PermissionDeniedError, PermissionNotFoundError, RelationshipNotFoundError, RelationshipValidationError, RetrievalValidationError, RevisionConflictError } from "@lifegraph/db";
+import { StorageValidationError } from "@lifegraph/storage";
+import { StorageProviderError } from "@lifegraph/storage/supabase";
 import { NextResponse, type NextRequest } from "next/server";
 import { ZodError, type ZodType } from "zod";
 import { getAuthService } from "./auth";
@@ -57,6 +59,10 @@ export function handleApiError(error: unknown, currentRequestId: string) {
   if (error instanceof RelationshipNotFoundError) return apiError("NOT_FOUND", "The relationship was not found.", 404, currentRequestId);
   if (error instanceof AIOperationValidationError) return apiError("AI_OUTPUT_INVALID", error.message, 400, currentRequestId);
   if (error instanceof RetrievalValidationError) return apiError("RETRIEVAL_INVALID", error.message, 400, currentRequestId);
+  if (error instanceof StorageValidationError) return apiError("VALIDATION_FAILED", error.message, 400, currentRequestId);
+  if (error instanceof FileStateError) return apiError("FILE_STATE_CONFLICT", error.message, 409, currentRequestId);
+  if (error instanceof FileNotFoundError) return apiError("NOT_FOUND", "The file was not found.", 404, currentRequestId);
+  if (error instanceof StorageProviderError) return apiError("STORAGE_UNAVAILABLE", "File storage is unavailable.", 503, currentRequestId);
   if (error instanceof AIOperationDecisionError) return apiError("AI_OPERATION_DECIDED", "This proposal has already been decided.", 409, currentRequestId);
   if (error instanceof AIOperationNotFoundError) return apiError("NOT_FOUND", "The AI operation was not found.", 404, currentRequestId);
   if (error instanceof ObjectNotFoundError) {

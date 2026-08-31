@@ -18,10 +18,20 @@ const serverSchema = publicSchema.extend({
   AI_API_KEY: z.union([z.string().min(1), z.literal("")]).optional(),
   AI_MODEL: z.string().min(1).default("gpt-5-mini"),
   AI_EMBEDDING_MODEL: z.string().min(1).default("text-embedding-3-small"),
-  AI_BASE_URL: url.default("https://api.openai.com/v1")
+  AI_BASE_URL: url.default("https://api.openai.com/v1"),
+  SUPABASE_SERVICE_ROLE_KEY: z.union([z.string().min(1), z.literal("")]).optional(),
+  STORAGE_BUCKET: z.string().trim().min(1).max(63).default("lifegraph-private"),
+  // Downloads stay blocked until a scanner clears a file. Only development may opt out.
+  STORAGE_REQUIRE_SCAN: z.enum(["true", "false"]).default("true").transform((value) => value === "true")
 }).superRefine((value, context) => {
   if (value.NODE_ENV === "production" && !value.SENTRY_DSN) {
     context.addIssue({ code: "custom", path: ["SENTRY_DSN"], message: "SENTRY_DSN is required in production" });
+  }
+  if (value.NODE_ENV === "production" && !value.SUPABASE_SERVICE_ROLE_KEY) {
+    context.addIssue({ code: "custom", path: ["SUPABASE_SERVICE_ROLE_KEY"], message: "SUPABASE_SERVICE_ROLE_KEY is required in production" });
+  }
+  if (value.NODE_ENV === "production" && !value.STORAGE_REQUIRE_SCAN) {
+    context.addIssue({ code: "custom", path: ["STORAGE_REQUIRE_SCAN"], message: "STORAGE_REQUIRE_SCAN cannot be disabled in production" });
   }
 });
 
