@@ -1,6 +1,6 @@
 {
   "name": "lifegraph",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "private": true,
   "packageManager": "pnpm@11.19.0",
   "engines": {
@@ -22,7 +22,8 @@
     "verify:inline-ai": "node scripts/verify-inline-ai.mjs",
     "verify:retrieval": "node scripts/verify-retrieval.mjs",
     "verify:ask": "node scripts/verify-ask-my-life.mjs",
-    "check": "pnpm verify:foundation && pnpm verify:core && pnpm verify:permissions && pnpm verify:editor && pnpm verify:graph && pnpm verify:ai && pnpm verify:inline-ai && pnpm verify:retrieval && pnpm verify:ask && pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+    "verify:capture": "node scripts/verify-capture-files.mjs",
+    "check": "pnpm verify:foundation && pnpm verify:core && pnpm verify:permissions && pnpm verify:editor && pnpm verify:graph && pnpm verify:ai && pnpm verify:inline-ai && pnpm verify:retrieval && pnpm verify:ask && pnpm verify:capture && pnpm lint && pnpm typecheck && pnpm test && pnpm build",
     "db:generate": "pnpm --filter @lifegraph/db db:generate",
     "db:migrate": "pnpm --filter @lifegraph/db db:migrate",
     "db:check": "pnpm --filter @lifegraph/db db:check"

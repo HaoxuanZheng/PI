@@ -1,8 +1,9 @@
 import type { ObjectSnapshot, RelationshipType } from "@lifegraph/domain";
 import type { AIPatchProposal, AIContextManifest } from "@lifegraph/ai";
 import type { Capability, PrincipalType, ResourceType } from "@lifegraph/permissions";
+import type { FileCategory } from "@lifegraph/storage";
 import { sql } from "drizzle-orm";
-import { index, integer, jsonb, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid, vector } from "drizzle-orm/pg-core";
+import { bigint, index, integer, jsonb, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid, vector } from "drizzle-orm/pg-core";
 
 export const accountStatusEnum = pgEnum("account_status", ["ACTIVE", "SUSPENDED", "DELETION_PENDING"]);
 export const objectTypeEnum = pgEnum("object_type", [
@@ -17,6 +18,10 @@ export const principalTypeEnum = pgEnum("principal_type", ["USER", "CONNECTION",
 export const resourceTypeEnum = pgEnum("resource_type", ["OBJECT"]);
 export const actorTypeEnum = pgEnum("actor_type", ["USER", "SYSTEM", "SYSTEM_AI"]);
 export const relationshipTypeEnum = pgEnum("relationship_type", ["MENTIONS", "RELATED_TO", "PART_OF", "WORKED_ON", "ATTENDED", "KNOWS", "USES_SKILL"]);
+export const fileCategoryEnum = pgEnum("file_category", ["DOCUMENT", "IMAGE", "AUDIO"]);
+export const fileUploadStatusEnum = pgEnum("file_upload_status", ["PENDING", "STORED"]);
+export const fileScanStatusEnum = pgEnum("file_scan_status", ["PENDING", "CLEAN", "INFECTED", "FAILED"]);
+export const fileProcessingStatusEnum = pgEnum("file_processing_status", ["PENDING", "READY", "FAILED"]);
 export const aiValidationStatusEnum = pgEnum("ai_validation_status", ["VALID", "INVALID"]);
 export const aiUserDecisionEnum = pgEnum("ai_user_decision", ["PENDING", "ACCEPTED", "REJECTED", "MODIFIED", "EXPIRED"]);
 
@@ -110,6 +115,34 @@ export const embeddingChunks=pgTable("embedding_chunks",{
   id:uuid("id").primaryKey().defaultRandom(),ownerId:uuid("owner_id").notNull().references(()=>users.id,{onDelete:"restrict"}),objectId:uuid("object_id").notNull().references(()=>objects.id,{onDelete:"restrict"}),sourceRevisionId:uuid("source_revision_id").notNull().references(()=>objectRevisions.id,{onDelete:"restrict"}),chunkIndex:integer("chunk_index").notNull(),content:text("content").notNull(),contentHash:text("content_hash").notNull(),embedding:vector("embedding",{dimensions:1536}).notNull(),metadata:jsonb("metadata").$type<{field:string;blockIds:string[]}>().notNull(),createdAt:timestamp("created_at",{withTimezone:true,mode:"date"}).notNull().defaultNow(),deletedAt:timestamp("deleted_at",{withTimezone:true,mode:"date"})
 },table=>[uniqueIndex("embedding_chunks_revision_index_uidx").on(table.objectId,table.sourceRevisionId,table.chunkIndex),index("embedding_chunks_active_object_idx").on(table.objectId,table.sourceRevisionId)]);
 
+/**
+ * A file always belongs to exactly one canonical object, so file authorization is the owning
+ * object's authorization. `storage_key` is server-derived and owner-prefixed; the committed
+ * migration additionally enforces that prefix in the database.
+ */
+export const files = pgTable("files", {
+  id: uuid("id").primaryKey(),
+  ownerId: uuid("owner_id").notNull().references(() => users.id, { onDelete: "restrict" }),
+  objectId: uuid("object_id").notNull().references(() => objects.id, { onDelete: "restrict" }),
+  storageKey: text("storage_key").notNull(),
+  originalFilename: text("original_filename").notNull(),
+  mimeType: text("mime_type").notNull(),
+  category: fileCategoryEnum("category").$type<FileCategory>().notNull(),
+  byteSize: bigint("byte_size", { mode: "number" }).notNull(),
+  checksum: text("checksum"),
+  uploadStatus: fileUploadStatusEnum("upload_status").notNull().default("PENDING"),
+  scanStatus: fileScanStatusEnum("scan_status").notNull().default("PENDING"),
+  processingStatus: fileProcessingStatusEnum("processing_status").notNull().default("PENDING"),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+  completedAt: timestamp("completed_at", { withTimezone: true, mode: "date" }),
+  deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "date" })
+}, (table) => [
+  uniqueIndex("files_storage_key_uidx").on(table.storageKey),
+  index("files_object_created_idx").on(table.objectId, table.createdAt),
+  index("files_owner_created_idx").on(table.ownerId, table.createdAt),
+  uniqueIndex("files_object_checksum_uidx").on(table.objectId, table.checksum).where(sql`${table.deletedAt} IS NULL AND ${table.checksum} IS NOT NULL`)
+]);
+
 export const auditLogs = pgTable("audit_logs", {
   id: uuid("id").primaryKey().defaultRandom(),
   actorUserId: uuid("actor_user_id").references(() => users.id, { onDelete: "restrict" }),
@@ -133,3 +166,4 @@ export type AuditLogRow = typeof auditLogs.$inferSelect;
 export type ObjectRelationshipRow = typeof objectRelationships.$inferSelect;
 export type AIOperationRow = typeof aiOperations.$inferSelect;
 export type EmbeddingChunkRow = typeof embeddingChunks.$inferSelect;
+export type FileRow = typeof files.$inferSelect;

@@ -2,7 +2,7 @@
 
 LifeGraph is a private-by-default Personal Internet: one user-owned source of truth that can power a private library, trusted AI assistance, and explicitly authorized public views.
 
-This repository contains the **Foundation**, **Object + Revision Core**, **Permission Engine**, **Editor**, **Graph**, and **AI Infrastructure** milestones. Inline AI, retrieval, imports, and Living Identity are intentionally not implemented yet.
+This repository contains the **Foundation**, **Object + Revision Core**, **Permission Engine**, **Editor**, **Graph**, **AI Infrastructure**, **Inline AI**, **Embeddings + Retrieval**, **Ask My Life**, and **Capture + Files** milestones. Imports, Living Identity, sharing, and alpha hardening are intentionally not implemented yet.
 
 ## Requirements
 
@@ -47,6 +47,7 @@ Database-backed integration tests run when `TEST_DATABASE_URL` points to a dispo
 - `packages/domain`: versioned object input and snapshot contracts
 - `packages/permissions`: centralized capability decisions and permission schemas
 - `packages/shared`: provider-neutral shared types
+- `packages/storage`: upload validation, storage key derivation, and the object storage port
 - `docs/architecture`: architecture decision records
 - `docs/runbooks`: deployment and operational instructions
 - `docs/product`: product thesis and technical specification
@@ -111,6 +112,19 @@ See `docs/runbooks/graph-api.md` for the relationship API.
 
 See `docs/runbooks/ai-infrastructure.md` for adapter and operation rules.
 
+## Capture and file invariants
+
+- A file belongs to exactly one canonical object and inherits that object's authorization; attaching requires EDIT and reading requires READ.
+- Storage keys are derived on the server as `{ownerId}/{fileId}/{sanitizedFilename}`; a database CHECK repeats the owner prefix rule.
+- Content types are an allowlist with per-category size limits, and a declared type must agree with its extension.
+- Uploads are two-phase: an intent reserves a `PENDING` row, and completion records the confirmed size and a SHA-256 digest.
+- Downloads are short-lived signed URLs and are refused until a scanner records `CLEAN`; production cannot disable that gate.
+- Deleting a file removes the stored bytes, and deleting an object cascades to its attachments.
+
+See `docs/runbooks/files.md` for the upload, download, and deletion contract.
+
 ## Current boundary
 
-The next milestone is **Inline AI**: selection, command, schema-valid proposal generation, diff, and transactional Accept/Reject that creates an undoable `AI_ACCEPTED` revision. Full-text search remains adjacent infrastructure and must land before retrieval-backed AI context expands beyond explicitly selected objects.
+Milestones through **Capture + Files** (V0.10) are implemented. Imports, Living Identity, sharing, and alpha hardening are intentionally not implemented yet.
+
+The next milestone is the **Import Framework**: a generic provider contract with resumable job state, dedupe, and idempotency, with Google Drive first. Imported content must default to `PRIVATE` and reuse the file capture path rather than writing storage directly. Entity resolution for people, and object-level full-text search, remain adjacent infrastructure that imports will require.
