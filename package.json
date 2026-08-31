@@ -1,6 +1,6 @@
 {
   "name": "lifegraph",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "private": true,
   "packageManager": "pnpm@11.19.0",
   "engines": {
@@ -24,7 +24,8 @@
     "verify:ask": "node scripts/verify-ask-my-life.mjs",
     "verify:capture": "node scripts/verify-capture-files.mjs",
     "verify:imports": "node scripts/verify-imports.mjs",
-    "check": "pnpm verify:foundation && pnpm verify:core && pnpm verify:permissions && pnpm verify:editor && pnpm verify:graph && pnpm verify:ai && pnpm verify:inline-ai && pnpm verify:retrieval && pnpm verify:ask && pnpm verify:capture && pnpm verify:imports && pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+    "verify:entities": "node scripts/verify-entities.mjs",
+    "check": "pnpm verify:foundation && pnpm verify:core && pnpm verify:permissions && pnpm verify:editor && pnpm verify:graph && pnpm verify:ai && pnpm verify:inline-ai && pnpm verify:retrieval && pnpm verify:ask && pnpm verify:capture && pnpm verify:imports && pnpm verify:entities && pnpm lint && pnpm typecheck && pnpm test && pnpm build",
     "db:generate": "pnpm --filter @lifegraph/db db:generate",
     "db:migrate": "pnpm --filter @lifegraph/db db:migrate",
     "db:check": "pnpm --filter @lifegraph/db db:check"

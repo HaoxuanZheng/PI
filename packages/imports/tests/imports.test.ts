@@ -9,6 +9,7 @@ import {
   normalizedImportItemSchema
 } from "../src/index";
 import { createGoogleDriveProvider, driveObjectType, normalizeDriveFile, type DriveTransport } from "../src/google-drive";
+import { createGoogleContactsProvider, normalizeContact, type ContactsTransport } from "../src/google-contacts";
 
 const driveDoc = {
   id: "drive-1",
@@ -147,5 +148,51 @@ describe("drive provider", () => {
   it("surfaces a provider failure rather than importing nothing silently", async () => {
     const { transport } = transportFor({});
     await expect(createGoogleDriveProvider({ accessToken: "token", transport }).fetchBatch()).rejects.toThrow(/status 404/);
+  });
+});
+
+describe("contacts normalisation", () => {
+  const contact = {
+    resourceName: "people/c1",
+    names: [{ displayName: "Alex Chen" }],
+    emailAddresses: [{ value: " Alex@Example.com " }],
+    phoneNumbers: [{ value: "+1 212 555 0147" }],
+    organizations: [{ name: "Example Labs", title: "Engineer" }]
+  };
+
+  it("maps a contact to a PERSON with typed profile detail", () => {
+    const item = normalizeContact(contact);
+    expect(item.snapshot.type).toBe("PERSON");
+    expect(item.snapshot.title).toBe("Alex Chen");
+    expect(item.snapshot.customFields).toMatchObject({
+      person: { displayName: "Alex Chen", organization: "Example Labs", role: "Engineer", emails: ["Alex@Example.com"], phones: ["+1 212 555 0147"] },
+      source: { provider: "GOOGLE_CONTACTS", externalId: "people/c1" }
+    });
+  });
+
+  it("falls back to an email when the contact has no name", () => {
+    const item = normalizeContact({ resourceName: "people/c2", emailAddresses: [{ value: "solo@example.com" }] });
+    expect(item.snapshot.title).toBe("solo@example.com");
+  });
+
+  it("rejects a contact that cannot be identified at all", () => {
+    expect(() => normalizeContact({ resourceName: "people/c3", phoneNumbers: [{ value: "212-555-0147" }] })).toThrow(ImportValidationError);
+  });
+
+  it("hashes only profile content, so a re-import of the same contact is unchanged", () => {
+    expect(normalizeContact(contact).contentHash).toBe(normalizeContact({ ...contact }).contentHash);
+    expect(normalizeContact({ ...contact, organizations: [{ name: "Other Co", title: "Engineer" }] }).contentHash)
+      .not.toBe(normalizeContact(contact).contentHash);
+  });
+
+  it("skips unidentifiable contacts instead of failing the page", async () => {
+    const payload = JSON.stringify({ connections: [contact, { resourceName: "people/bad" }], nextPageToken: null });
+    const transport: ContactsTransport = async () => ({ ok: true, status: 200, text: async () => payload });
+    const batch = await createGoogleContactsProvider({ accessToken: "token", transport }).fetchBatch();
+    expect(batch.items.map((item) => item.sourceExternalId)).toEqual(["people/c1"]);
+  });
+
+  it("requires an access token", () => {
+    expect(() => createGoogleContactsProvider({ accessToken: " " })).toThrow(ImportValidationError);
   });
 });

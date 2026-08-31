@@ -1,6 +1,6 @@
 {
   "name": "@lifegraph/db",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "private": true,
   "type": "module",
   "exports": { ".": "./src/index.ts" },
@@ -14,6 +14,7 @@
     "@lifegraph/ai": "workspace:*",
     "@lifegraph/config": "workspace:*",
     "@lifegraph/domain": "workspace:*",
+    "@lifegraph/entities": "workspace:*",
     "@lifegraph/imports": "workspace:*",
     "@lifegraph/permissions": "workspace:*",
     "@lifegraph/retrieval": "workspace:*",

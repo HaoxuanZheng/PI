@@ -24,7 +24,8 @@ const serverSchema = publicSchema.extend({
   // Downloads stay blocked until a scanner clears a file. Only development may opt out.
   STORAGE_REQUIRE_SCAN: z.enum(["true", "false"]).default("true").transform((value) => value === "true"),
   // V0.11 accepts a pre-obtained read-only Drive token; the OAuth consent flow is not implemented.
-  GOOGLE_DRIVE_ACCESS_TOKEN: z.union([z.string().min(1), z.literal("")]).optional()
+  GOOGLE_DRIVE_ACCESS_TOKEN: z.union([z.string().min(1), z.literal("")]).optional(),
+  GOOGLE_CONTACTS_ACCESS_TOKEN: z.union([z.string().min(1), z.literal("")]).optional()
 }).superRefine((value, context) => {
   if (value.NODE_ENV === "production" && !value.SENTRY_DSN) {
     context.addIssue({ code: "custom", path: ["SENTRY_DSN"], message: "SENTRY_DSN is required in production" });

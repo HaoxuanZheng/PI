@@ -31,3 +31,4 @@ export * from "./repositories/ai-operations";
 export * from "./repositories/retrieval";
 export * from "./repositories/files";
 export * from "./repositories/imports";
+export * from "./repositories/entities";

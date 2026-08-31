@@ -1,10 +1,11 @@
 import type { ObjectSnapshot, RelationshipType } from "@lifegraph/domain";
 import type { AIPatchProposal, AIContextManifest } from "@lifegraph/ai";
 import type { Capability, PrincipalType, ResourceType } from "@lifegraph/permissions";
+import type { MatchConfidence, MatchSignal } from "@lifegraph/entities";
 import type { ImportProviderName, ImportStatus } from "@lifegraph/imports";
 import type { FileCategory } from "@lifegraph/storage";
 import { sql } from "drizzle-orm";
-import { bigint, index, integer, jsonb, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid, vector } from "drizzle-orm/pg-core";
+import { bigint, index, integer, jsonb, numeric, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid, vector } from "drizzle-orm/pg-core";
 
 export const accountStatusEnum = pgEnum("account_status", ["ACTIVE", "SUSPENDED", "DELETION_PENDING"]);
 export const objectTypeEnum = pgEnum("object_type", [
@@ -19,6 +20,8 @@ export const principalTypeEnum = pgEnum("principal_type", ["USER", "CONNECTION",
 export const resourceTypeEnum = pgEnum("resource_type", ["OBJECT"]);
 export const actorTypeEnum = pgEnum("actor_type", ["USER", "SYSTEM", "SYSTEM_AI"]);
 export const relationshipTypeEnum = pgEnum("relationship_type", ["MENTIONS", "RELATED_TO", "PART_OF", "WORKED_ON", "ATTENDED", "KNOWS", "USES_SKILL"]);
+export const entityMergeStatusEnum = pgEnum("entity_merge_status", ["PENDING", "MERGED", "SEPARATE"]);
+export const entityMatchConfidenceEnum = pgEnum("entity_match_confidence", ["HIGH", "MEDIUM", "LOW"]);
 export const importProviderEnum = pgEnum("import_provider", ["GOOGLE_DRIVE", "NOTION", "GOOGLE_CONTACTS"]);
 export const importStatusEnum = pgEnum("import_status", ["PENDING", "RUNNING", "COMPLETED", "FAILED"]);
 export const fileCategoryEnum = pgEnum("file_category", ["DOCUMENT", "IMAGE", "AUDIO"]);
@@ -170,6 +173,37 @@ export const imports = pgTable("imports", {
   uniqueIndex("imports_active_provider_uidx").on(table.userId, table.provider).where(sql`${table.status} IN ('PENDING','RUNNING')`)
 ]);
 
+export const entityMergeCandidates = pgTable("entity_merge_candidates", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  ownerId: uuid("owner_id").notNull().references(() => users.id, { onDelete: "restrict" }),
+  leftObjectId: uuid("left_object_id").notNull().references(() => objects.id, { onDelete: "restrict" }),
+  rightObjectId: uuid("right_object_id").notNull().references(() => objects.id, { onDelete: "restrict" }),
+  score: numeric("score", { precision: 4, scale: 3, mode: "number" }).notNull(),
+  confidence: entityMatchConfidenceEnum("confidence").$type<MatchConfidence>().notNull(),
+  signals: jsonb("signals").$type<MatchSignal[]>().notNull(),
+  status: entityMergeStatusEnum("status").notNull().default("PENDING"),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+  decidedAt: timestamp("decided_at", { withTimezone: true, mode: "date" })
+}, (table) => [
+  uniqueIndex("entity_merge_candidates_pair_uidx").on(table.ownerId, table.leftObjectId, table.rightObjectId),
+  index("entity_merge_candidates_owner_status_idx").on(table.ownerId, table.status, table.score)
+]);
+
+export const entityMerges = pgTable("entity_merges", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  ownerId: uuid("owner_id").notNull().references(() => users.id, { onDelete: "restrict" }),
+  candidateId: uuid("candidate_id").notNull().references(() => entityMergeCandidates.id, { onDelete: "restrict" }),
+  targetObjectId: uuid("target_object_id").notNull().references(() => objects.id, { onDelete: "restrict" }),
+  sourceObjectId: uuid("source_object_id").notNull().references(() => objects.id, { onDelete: "restrict" }),
+  targetRevisionBefore: uuid("target_revision_before").notNull().references(() => objectRevisions.id, { onDelete: "restrict" }),
+  targetRevisionAfter: uuid("target_revision_after").notNull().references(() => objectRevisions.id, { onDelete: "restrict" }),
+  sourceRevisionBefore: uuid("source_revision_before").notNull().references(() => objectRevisions.id, { onDelete: "restrict" }),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow()
+}, (table) => [
+  uniqueIndex("entity_merges_candidate_uidx").on(table.candidateId),
+  index("entity_merges_owner_created_idx").on(table.ownerId, table.createdAt)
+]);
+
 export const auditLogs = pgTable("audit_logs", {
   id: uuid("id").primaryKey().defaultRandom(),
   actorUserId: uuid("actor_user_id").references(() => users.id, { onDelete: "restrict" }),
@@ -195,3 +229,5 @@ export type AIOperationRow = typeof aiOperations.$inferSelect;
 export type EmbeddingChunkRow = typeof embeddingChunks.$inferSelect;
 export type FileRow = typeof files.$inferSelect;
 export type ImportRow = typeof imports.$inferSelect;
+export type EntityMergeCandidateRow = typeof entityMergeCandidates.$inferSelect;
+export type EntityMergeRow = typeof entityMerges.$inferSelect;
