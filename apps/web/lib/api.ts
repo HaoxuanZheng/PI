@@ -1,11 +1,14 @@
 import type { AuthUser } from "@lifegraph/auth";
-import { AIOperationDecisionError, AIOperationNotFoundError, AIOperationValidationError, FileNotFoundError, FileStateError, ObjectNotFoundError, ObjectTypeConflictError, PermissionDeniedError, PermissionNotFoundError, RelationshipNotFoundError, RelationshipValidationError, RetrievalValidationError, RevisionConflictError } from "@lifegraph/db";
+import { AIOperationDecisionError, AIOperationNotFoundError, AIOperationValidationError, FileNotFoundError, FileStateError, ImportNotFoundError, ImportStateError, ObjectNotFoundError, ObjectTypeConflictError, PermissionDeniedError, PermissionNotFoundError, RelationshipNotFoundError, RelationshipValidationError, RetrievalValidationError, RevisionConflictError } from "@lifegraph/db";
+import { ImportValidationError } from "@lifegraph/imports";
+import { ImportProviderError } from "@lifegraph/imports/google-drive";
 import { StorageValidationError } from "@lifegraph/storage";
 import { StorageProviderError } from "@lifegraph/storage/supabase";
 import { NextResponse, type NextRequest } from "next/server";
 import { ZodError, type ZodType } from "zod";
 import { getAuthService } from "./auth";
 import { InactiveAccountError, provisionActor } from "./actor";
+import { ImportProviderUnavailableError } from "./imports";
 
 export type ApiContext = { actor: AuthUser; requestId: string };
 
@@ -59,7 +62,11 @@ export function handleApiError(error: unknown, currentRequestId: string) {
   if (error instanceof RelationshipNotFoundError) return apiError("NOT_FOUND", "The relationship was not found.", 404, currentRequestId);
   if (error instanceof AIOperationValidationError) return apiError("AI_OUTPUT_INVALID", error.message, 400, currentRequestId);
   if (error instanceof RetrievalValidationError) return apiError("RETRIEVAL_INVALID", error.message, 400, currentRequestId);
-  if (error instanceof StorageValidationError) return apiError("VALIDATION_FAILED", error.message, 400, currentRequestId);
+  if (error instanceof StorageValidationError || error instanceof ImportValidationError) return apiError("VALIDATION_FAILED", error.message, 400, currentRequestId);
+  if (error instanceof ImportStateError) return apiError("IMPORT_STATE_CONFLICT", error.message, 409, currentRequestId);
+  if (error instanceof ImportNotFoundError) return apiError("NOT_FOUND", "The import was not found.", 404, currentRequestId);
+  if (error instanceof ImportProviderError) return apiError("IMPORT_PROVIDER_ERROR", "The import provider could not be reached.", 502, currentRequestId);
+  if (error instanceof ImportProviderUnavailableError) return apiError("IMPORT_PROVIDER_UNAVAILABLE", error.message, 501, currentRequestId);
   if (error instanceof FileStateError) return apiError("FILE_STATE_CONFLICT", error.message, 409, currentRequestId);
   if (error instanceof FileNotFoundError) return apiError("NOT_FOUND", "The file was not found.", 404, currentRequestId);
   if (error instanceof StorageProviderError) return apiError("STORAGE_UNAVAILABLE", "File storage is unavailable.", 503, currentRequestId);

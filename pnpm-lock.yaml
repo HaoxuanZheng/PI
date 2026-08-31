@@ -50,6 +50,9 @@ importers:
       '@lifegraph/domain':
         specifier: workspace:*
         version: link:../../packages/domain
+      '@lifegraph/imports':
+        specifier: workspace:*
+        version: link:../../packages/imports
       '@lifegraph/permissions':
         specifier: workspace:*
         version: link:../../packages/permissions
@@ -145,6 +148,9 @@ importers:
       '@lifegraph/domain':
         specifier: workspace:*
         version: link:../domain
+      '@lifegraph/imports':
+        specifier: workspace:*
+        version: link:../imports
       '@lifegraph/permissions':
         specifier: workspace:*
         version: link:../permissions
@@ -183,6 +189,22 @@ importers:
       typescript:
         specifier: 5.9.2
         version: 5.9.2
+
+  packages/imports:
+    dependencies:
+      '@lifegraph/domain':
+        specifier: workspace:*
+        version: link:../domain
+      zod:
+        specifier: 4.1.5
+        version: 4.1.5
+    devDependencies:
+      typescript:
+        specifier: 5.9.2
+        version: 5.9.2
+      vitest:
+        specifier: 3.2.4
+        version: 3.2.4(@types/node@24.3.0)(supports-color@7.2.0)(tsx@4.20.5)
 
   packages/permissions:
     dependencies:

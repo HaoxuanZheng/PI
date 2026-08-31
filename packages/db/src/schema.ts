@@ -1,6 +1,7 @@
 import type { ObjectSnapshot, RelationshipType } from "@lifegraph/domain";
 import type { AIPatchProposal, AIContextManifest } from "@lifegraph/ai";
 import type { Capability, PrincipalType, ResourceType } from "@lifegraph/permissions";
+import type { ImportProviderName, ImportStatus } from "@lifegraph/imports";
 import type { FileCategory } from "@lifegraph/storage";
 import { sql } from "drizzle-orm";
 import { bigint, index, integer, jsonb, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid, vector } from "drizzle-orm/pg-core";
@@ -18,6 +19,8 @@ export const principalTypeEnum = pgEnum("principal_type", ["USER", "CONNECTION",
 export const resourceTypeEnum = pgEnum("resource_type", ["OBJECT"]);
 export const actorTypeEnum = pgEnum("actor_type", ["USER", "SYSTEM", "SYSTEM_AI"]);
 export const relationshipTypeEnum = pgEnum("relationship_type", ["MENTIONS", "RELATED_TO", "PART_OF", "WORKED_ON", "ATTENDED", "KNOWS", "USES_SKILL"]);
+export const importProviderEnum = pgEnum("import_provider", ["GOOGLE_DRIVE", "NOTION", "GOOGLE_CONTACTS"]);
+export const importStatusEnum = pgEnum("import_status", ["PENDING", "RUNNING", "COMPLETED", "FAILED"]);
 export const fileCategoryEnum = pgEnum("file_category", ["DOCUMENT", "IMAGE", "AUDIO"]);
 export const fileUploadStatusEnum = pgEnum("file_upload_status", ["PENDING", "STORED"]);
 export const fileScanStatusEnum = pgEnum("file_scan_status", ["PENDING", "CLEAN", "INFECTED", "FAILED"]);
@@ -51,13 +54,18 @@ export const objects = pgTable("objects", {
   effectiveTo: timestamp("effective_to", { withTimezone: true, mode: "date" }),
   sourceType: text("source_type"),
   sourceExternalId: text("source_external_id"),
+  sourceContentHash: text("source_content_hash"),
+  sourceModifiedAt: timestamp("source_modified_at", { withTimezone: true, mode: "date" }),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
   archivedAt: timestamp("archived_at", { withTimezone: true, mode: "date" }),
   deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "date" })
 }, (table) => [
   index("objects_owner_updated_idx").on(table.ownerId, table.updatedAt),
-  index("objects_owner_type_idx").on(table.ownerId, table.type)
+  index("objects_owner_type_idx").on(table.ownerId, table.type),
+  uniqueIndex("objects_owner_source_uidx")
+    .on(table.ownerId, table.sourceType, table.sourceExternalId)
+    .where(sql`${table.deletedAt} IS NULL AND ${table.sourceType} IS NOT NULL AND ${table.sourceExternalId} IS NOT NULL`)
 ]);
 
 export const objectRevisions = pgTable("object_revisions", {
@@ -143,6 +151,25 @@ export const files = pgTable("files", {
   uniqueIndex("files_object_checksum_uidx").on(table.objectId, table.checksum).where(sql`${table.deletedAt} IS NULL AND ${table.checksum} IS NOT NULL`)
 ]);
 
+export const imports = pgTable("imports", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "restrict" }),
+  provider: importProviderEnum("provider").$type<ImportProviderName>().notNull(),
+  status: importStatusEnum("status").$type<ImportStatus>().notNull().default("PENDING"),
+  startedAt: timestamp("started_at", { withTimezone: true, mode: "date" }),
+  completedAt: timestamp("completed_at", { withTimezone: true, mode: "date" }),
+  importedCount: integer("imported_count").notNull().default(0),
+  skippedCount: integer("skipped_count").notNull().default(0),
+  errorCount: integer("error_count").notNull().default(0),
+  cursorState: jsonb("cursor_state").$type<{ cursor: string | null }>(),
+  errorSummary: jsonb("error_summary").$type<{ errors: Array<{ sourceExternalId: string; message: string }> }>(),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull().defaultNow()
+}, (table) => [
+  index("imports_user_created_idx").on(table.userId, table.createdAt),
+  uniqueIndex("imports_active_provider_uidx").on(table.userId, table.provider).where(sql`${table.status} IN ('PENDING','RUNNING')`)
+]);
+
 export const auditLogs = pgTable("audit_logs", {
   id: uuid("id").primaryKey().defaultRandom(),
   actorUserId: uuid("actor_user_id").references(() => users.id, { onDelete: "restrict" }),
@@ -167,3 +194,4 @@ export type ObjectRelationshipRow = typeof objectRelationships.$inferSelect;
 export type AIOperationRow = typeof aiOperations.$inferSelect;
 export type EmbeddingChunkRow = typeof embeddingChunks.$inferSelect;
 export type FileRow = typeof files.$inferSelect;
+export type ImportRow = typeof imports.$inferSelect;
