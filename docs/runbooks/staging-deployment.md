@@ -22,6 +22,15 @@ Deploy the web application to a Node.js-compatible platform and connect it to an
 6. Deploy `apps/web` using `pnpm build` followed by `pnpm --filter @lifegraph/web start`.
 7. Verify `/api/health` returns HTTP 200 and perform sign-up, confirmation, sign-in, protected-route, and sign-out smoke tests.
 
+## Admin MFA (required before external alpha)
+
+Managed auth owns MFA; the application never handles TOTP secrets.
+
+1. In the Supabase dashboard for the staging project, enable MFA (TOTP) under Authentication settings.
+2. Enroll MFA for every admin/owner account and require it for the Supabase dashboard organization.
+3. Confirm `/api/health` still returns 200 and sign-in works with an MFA-enrolled admin account.
+4. Repeat all three steps for the production project before inviting alpha users. Accounts without MFA must not hold admin access.
+
 ## Rollback
 
 Roll back the application to the preceding immutable deployment. Database migrations require a reviewed forward fix unless a migration includes a separately tested reversible down procedure. Never erase staging or production user data as an application rollback.

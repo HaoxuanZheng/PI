@@ -44,10 +44,25 @@ export function requestId(request: NextRequest) {
 }
 
 export function apiError(code: string, message: string, status: number, currentRequestId: string, details?: unknown, headers?: Record<string, string>) {
+  logApiError(code, status, currentRequestId);
   return NextResponse.json(
     { error: { code, message, requestId: currentRequestId, ...(details ? { details } : {}) } },
     { status, headers: { "x-request-id": currentRequestId, ...(headers ?? {}) } }
   );
+}
+
+/**
+ * Structured server log for every API failure.
+ *
+ * Code, status, and requestId only. Request bodies, snapshots, note text,
+ * and user ids never enter general application logs per the privacy
+ * invariant; security-sensitive actions have their own metadata-only audit
+ * events in the database.
+ */
+export function logApiError(code: string, status: number, currentRequestId: string) {
+  const line = JSON.stringify({ level: status >= 500 ? "error" : "warn", code, status, requestId: currentRequestId });
+  if (status >= 500) console.error(line);
+  else console.warn(line);
 }
 
 export async function requireApiContext(request: NextRequest, options: { allowDeletionPending?: boolean } = {}): Promise<ApiContext | NextResponse> {

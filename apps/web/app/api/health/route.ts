@@ -8,14 +8,16 @@ export function GET(request: NextRequest) {
   } catch (error) {
     return handleApiError(error, currentRequestId);
   }
-  const configured = Boolean(
-    process.env.DATABASE_URL &&
-    process.env.NEXT_PUBLIC_SUPABASE_URL &&
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  );
+  // Presence only, never values: readiness must not expose secrets.
+  const checks = {
+    databaseUrl: Boolean(process.env.DATABASE_URL),
+    supabaseUrl: Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL),
+    supabaseAnonKey: Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+  };
+  const configured = checks.databaseUrl && checks.supabaseUrl && checks.supabaseAnonKey;
 
   return NextResponse.json(
-    { status: configured ? "ready" : "configuration_required", service: "lifegraph-web" },
+    { status: configured ? "ready" : "configuration_required", service: "lifegraph-web", checks },
     { status: configured ? 200 : 503 }
   );
 }
