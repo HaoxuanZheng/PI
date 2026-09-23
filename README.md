@@ -2,7 +2,7 @@
 
 LifeGraph is a private-by-default Personal Internet: one user-owned source of truth that can power a private library, trusted AI assistance, and explicitly authorized public views.
 
-This repository contains the **Foundation**, **Object + Revision Core**, **Permission Engine**, **Editor**, **Graph**, **AI Infrastructure**, **Inline AI**, **Embeddings + Retrieval**, **Ask My Life**, **Capture + Files**, the **Import Framework**, **Entity Resolution + Contacts**, the **Notion importer**, and **Living Identity** milestones. Alpha hardening is intentionally not implemented yet.
+This repository contains the **Foundation**, **Object + Revision Core**, **Permission Engine**, **Editor**, **Graph**, **AI Infrastructure**, **Inline AI**, **Embeddings + Retrieval**, **Ask My Life**, **Capture + Files**, the **Import Framework**, **Entity Resolution + Contacts**, the **Notion importer**, **Living Identity**, and **Alpha hardening** milestones (V0.15 rate limiting, V0.16 deletion pipeline, V0.17 account export, V0.18 onboarding and analytics, V0.19 monitoring and security).
 
 ## Requirements
 
@@ -166,8 +166,8 @@ See `docs/runbooks/publications.md` for the publish, preview, and sharing contra
 
 ## Current boundary
 
-Milestones through **Living Identity** (V0.14) are implemented. Alpha hardening is intentionally not implemented yet.
+Milestones through **Alpha hardening** (V0.19) are implemented: per-route rate limits with 429s (`0020`), edge-tombstoning object deletion plus a 7-day account deletion request window (`0021`), full user-owned account export (`0022`), onboarding state machine with privacy-safe product analytics (`0023`), and security headers with structured failure logging (`0024`).
 
-Deliberate gaps are recorded in the architecture decision records: no OAuth consent flow, so importers use operator-supplied read-only tokens (`0016`); import batches are driven by explicit requests rather than a background worker (`0016`); imported binaries do not yet create `files` rows (`0016`); merge undo is not exposed (`0017`); only top-level Notion blocks are read (`0018`); and no QR image encoder is bundled, so rendering a share code is a client concern (`0019`).
+Deliberate gaps are recorded in the architecture decision records: no OAuth consent flow, so importers use operator-supplied read-only tokens (`0016`); import batches are driven by explicit requests rather than a background worker (`0016`); imported binaries do not yet create `files` rows (`0016`); merge undo is not exposed (`0017`); only top-level Notion blocks are read (`0018`); no QR image encoder is bundled, so rendering a share code is a client concern (`0019`); purge execution after the deletion request window is recorded but not yet executed (`0021`); analytics stays in Postgres with no external pipeline (`0023`); error tracking stays on platform log streams with no DSN wired (`0024`).
 
-The final milestone is **Alpha hardening**: account export and deletion, rate limiting, admin MFA, onboarding, analytics, and monitoring. Two items are prerequisites rather than polish. The database-backed integration tests have never been executed, so every migration from `0007` onward is unverified against a real PostgreSQL instance. The specification also requires legal and compliance review before public launch, which `0019` makes technically possible but does not discharge.
+Two items remain prerequisites rather than polish. The database-backed integration tests have never been executed, so every migration from `0007` onward (including `0012` and `0013`) is unverified against a real PostgreSQL instance: point `TEST_DATABASE_URL` at a disposable database and run `pnpm test`. The specification also requires legal and compliance review before public launch, which `0019` makes technically possible but does not discharge.
