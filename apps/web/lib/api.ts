@@ -12,7 +12,7 @@ import { bucketAndKeyFor, getRateLimiter } from "./ratelimit";
 import { InactiveAccountError, provisionActor, provisionActorAllowingPendingDeletion } from "./actor";
 import { ImportProviderUnavailableError } from "./imports";
 import { AccountDeletionStateError, AccountNotFoundError } from "@lifegraph/db";
-import { PrivacyValidationError } from "@lifegraph/privacy";
+import { ExportOwnershipError, PrivacyValidationError } from "@lifegraph/privacy";
 
 export type ApiContext = { actor: AuthUser; requestId: string };
 
@@ -107,6 +107,9 @@ export function handleApiError(error: unknown, currentRequestId: string) {
   }
   if (error instanceof PrivacyValidationError) {
     return apiError("VALIDATION_FAILED", error.message, 400, currentRequestId);
+  }
+  if (error instanceof ExportOwnershipError) {
+    return apiError("INTERNAL_ERROR", "The export could not be completed.", 500, currentRequestId);
   }
   if (error instanceof RevisionConflictError) {
     return apiError("REVISION_CONFLICT", "This object changed after the supplied revision.", 409, currentRequestId);
