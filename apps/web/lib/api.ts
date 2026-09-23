@@ -8,6 +8,7 @@ import { StorageProviderError } from "@lifegraph/storage/supabase";
 import { NextResponse, type NextRequest } from "next/server";
 import { ZodError, type ZodType } from "zod";
 import { getAuthService } from "./auth";
+import { bucketAndKeyFor, getRateLimiter } from "./ratelimit";
 import { InactiveAccountError, provisionActor } from "./actor";
 import { ImportProviderUnavailableError } from "./imports";
 
@@ -15,21 +16,54 @@ export type ApiContext = { actor: AuthUser; requestId: string };
 
 class InvalidJsonError extends Error {}
 
+export class RateLimitedError extends Error {
+  readonly code = "RATE_LIMITED";
+  constructor(
+    readonly retryAfterSeconds: number,
+    readonly limit: number
+  ) {
+    super("The request rate limit was exceeded.");
+  }
+}
+
+export function checkRateLimit(request: NextRequest, actorId?: string) {
+  const { bucket, key } = bucketAndKeyFor(request, actorId);
+  const decision = getRateLimiter().check(key, bucket);
+  if (!decision.allowed) throw new RateLimitedError(decision.retryAfterSeconds, decision.limit);
+}
+
+export function rateLimitHeaders(error: RateLimitedError) {
+  return { "retry-after": String(error.retryAfterSeconds), "x-ratelimit-limit": String(error.limit) };
+}
+
 export function requestId(request: NextRequest) {
   return request.headers.get("x-request-id") ?? crypto.randomUUID();
 }
 
-export function apiError(code: string, message: string, status: number, currentRequestId: string, details?: unknown) {
+export function apiError(code: string, message: string, status: number, currentRequestId: string, details?: unknown, headers?: Record<string, string>) {
   return NextResponse.json(
     { error: { code, message, requestId: currentRequestId, ...(details ? { details } : {}) } },
-    { status, headers: { "x-request-id": currentRequestId } }
+    { status, headers: { "x-request-id": currentRequestId, ...(headers ?? {}) } }
   );
 }
 
 export async function requireApiContext(request: NextRequest): Promise<ApiContext | NextResponse> {
   const currentRequestId = requestId(request);
+  // Bound unauthenticated abuse before touching auth: too many anonymous
+  // requests from one client never reach session lookup.
+  try {
+    checkRateLimit(request);
+  } catch (error) {
+    return handleApiError(error, currentRequestId);
+  }
   const actor = await (await getAuthService()).currentUser();
   if (!actor) return apiError("UNAUTHENTICATED", "Authentication is required.", 401, currentRequestId);
+
+  try {
+    checkRateLimit(request, actor.id);
+  } catch (error) {
+    return handleApiError(error, currentRequestId);
+  }
 
   return { actor: await provisionActor(actor), requestId: currentRequestId };
 }
@@ -44,6 +78,9 @@ export async function parseJson<T>(request: NextRequest, schema: ZodType<T>) {
 }
 
 export function handleApiError(error: unknown, currentRequestId: string) {
+  if (error instanceof RateLimitedError) {
+    return apiError("RATE_LIMITED", error.message, 429, currentRequestId, undefined, rateLimitHeaders(error));
+  }
   if (error instanceof ZodError) {
     return apiError("VALIDATION_FAILED", "The request payload is invalid.", 400, currentRequestId, error.issues);
   }

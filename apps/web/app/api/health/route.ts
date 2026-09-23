@@ -1,6 +1,13 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
+import { checkRateLimit, handleApiError, requestId } from "@/lib/api";
 
-export function GET() {
+export function GET(request: NextRequest) {
+  const currentRequestId = requestId(request);
+  try {
+    checkRateLimit(request);
+  } catch (error) {
+    return handleApiError(error, currentRequestId);
+  }
   const configured = Boolean(
     process.env.DATABASE_URL &&
     process.env.NEXT_PUBLIC_SUPABASE_URL &&

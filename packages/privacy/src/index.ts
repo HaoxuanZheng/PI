@@ -117,7 +117,7 @@ export function assertBundleOwnership(bundle: ExportBundle, ownerId: string) {
 }
 
 export function emptyCollections(): Record<ExportCollection, unknown[]> {
-  return Object.fromEntries(exportCollections.map((name) => [name, []])) as Record<ExportCollection, unknown[]>;
+  return Object.fromEntries(exportCollections.map((name) => [name, []])) as unknown as Record<ExportCollection, unknown[]>;
 }
 
 function escapeMarkdown(value: string) {
