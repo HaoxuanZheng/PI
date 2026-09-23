@@ -28,7 +28,7 @@ jobs:
           --health-retries 10
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/lifegraph
-      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/lifegraph
+      TEST_DATABASE_URL: postgresql://app:app@localhost:5432/lifegraph
       NEXT_PUBLIC_APP_URL: http://localhost:3000
       NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-key
@@ -42,4 +42,13 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --no-frozen-lockfile
+      # Superusers bypass row-level security entirely, so integration tests
+      # must run as a least-privilege role or tenant isolation is theater.
+      # The vector extension is pre-installed because only superusers can.
+      - run: >
+          psql "$DATABASE_URL" -c "CREATE EXTENSION IF NOT EXISTS vector;"
+          -c "DROP ROLE IF EXISTS app;"
+          -c "CREATE ROLE app LOGIN PASSWORD 'app';"
+          -c "GRANT CREATE ON DATABASE lifegraph TO app;"
+          -c "ALTER DATABASE lifegraph OWNER TO app;"
       - run: pnpm check

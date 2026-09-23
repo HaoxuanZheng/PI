@@ -238,7 +238,7 @@ export function createFileRepository(
         const pending = Array.from(result).map((row) => ({ id: String(row.id), storageKey: String(row.storageKey) }));
         // Mark before removing bytes, so a failed removal never leaves a readable row.
         if (pending.length) {
-          await transaction.execute(statement`UPDATE files SET deleted_at=COALESCE(deleted_at, now()) WHERE owner_id=${ownerId}::uuid AND id = ANY(${pending.map((row) => row.id)}::uuid[])`);
+          await transaction.execute(statement`UPDATE files SET deleted_at=COALESCE(deleted_at, now()) WHERE owner_id=${ownerId}::uuid AND id IN (${statement.join(pending.map((row) => statement`${row.id}`), statement`, `)})`);
         }
         return pending;
       });

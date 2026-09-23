@@ -139,9 +139,17 @@ integration("object + revision repository", () => {
     await repository.softDelete(ownerA,hidden.object.id,hidden.currentRevision.id,"test-delete");
     expect((await retrieval.search(ownerA,"private launch",embeddingProvider)).selected.some(item=>item.objectId===hidden.object.id)).toBe(false);
 
-    await expect(client.sql.begin(async (sql) => {
+    // Revisions are immutable: no UPDATE or DELETE policy exists, so RLS denies
+    // the write before the immutability trigger is even reached.
+    const mutated = await client.sql.begin(async (sql) => {
       await sql`select set_config('app.current_user_id', ${ownerA}, true)`;
-      await sql`update object_revisions set change_type = 'UPDATE' where id = ${restored.currentRevision.id}`;
-    })).rejects.toThrow(/immutable/);
+      return sql`update object_revisions set change_type = 'UPDATE' where id = ${restored.currentRevision.id} returning id`;
+    });
+    expect(mutated).toHaveLength(0);
+    const deleted = await client.sql.begin(async (sql) => {
+      await sql`select set_config('app.current_user_id', ${ownerA}, true)`;
+      return sql`delete from object_revisions where id = ${restored.currentRevision.id} returning id`;
+    });
+    expect(deleted).toHaveLength(0);
   });
 });

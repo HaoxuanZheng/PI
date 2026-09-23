@@ -9,7 +9,12 @@ Deploy the web application to a Node.js-compatible platform and connect it to an
 - `NEXT_PUBLIC_APP_URL`: staging origin
 - `NEXT_PUBLIC_SUPABASE_URL`: staging Supabase URL
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: staging public anonymous key
-- `DATABASE_URL`: pooled staging PostgreSQL connection string, stored as a secret
+- `DATABASE_URL`: pooled staging PostgreSQL connection string, stored as a secret.
+  The connected role must not be a superuser and must not hold `BYPASSRLS`:
+  superusers bypass row-level security unconditionally, which turns tenant
+  isolation into theater (`0025`). Grant the role `CONNECT`, `CREATE`, and
+  `TEMPORARY` on the database plus full rights on the migrated schema, and
+  install the `vector` extension once as a superuser.
 - `SENTRY_DSN`: staging error-tracking DSN when enabled
 
 ## Procedure

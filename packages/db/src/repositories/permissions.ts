@@ -21,10 +21,20 @@ export function createPermissionRepository(client: DatabaseClient) {
   }): Promise<PermissionDecision> {
     return client.db.transaction(async (transaction) => {
       await transaction.execute(statement`select set_config('app.current_user_id', ${input.actorUserId}, true)`);
-      const [resource] = await transaction.select({ ownerId: objects.ownerId }).from(objects)
-        .where(and(eq(objects.id, input.resourceId), isNull(objects.deletedAt)))
+      const [resource] = await transaction.select({ ownerId: objects.ownerId, deletedAt: objects.deletedAt }).from(objects)
+        .where(eq(objects.id, input.resourceId))
         .limit(1);
       if (!resource) return { allowed: false, reason: "DENIED", fieldPolicy: { default: "PRIVATE", fields: {} } };
+      // Soft-deleted objects keep owner-readable history (revisions, audit) but
+      // grant nothing else: grantees lose access and no edit path can resurrect.
+      if (resource.deletedAt !== null) {
+        const ownerRead = resource.ownerId === input.actorUserId && input.action === "READ";
+        return {
+          allowed: ownerRead,
+          reason: ownerRead ? "OWNER" : "DENIED",
+          fieldPolicy: { default: "PRIVATE", fields: {} }
+        };
+      }
 
       const grants = await transaction.select({
         principalType: permissionGrants.principalType,
