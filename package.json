@@ -1,6 +1,6 @@
 {
   "name": "lifegraph",
-  "version": "0.15.0",
+  "version": "0.16.0",
   "private": true,
   "packageManager": "pnpm@11.19.0",
   "engines": {
@@ -27,7 +27,8 @@
     "verify:entities": "node scripts/verify-entities.mjs",
     "verify:living-identity": "node scripts/verify-living-identity.mjs",
     "verify:alpha-ratelimit": "node scripts/verify-alpha-ratelimit.mjs",
-    "check": "pnpm verify:foundation && pnpm verify:core && pnpm verify:permissions && pnpm verify:editor && pnpm verify:graph && pnpm verify:ai && pnpm verify:inline-ai && pnpm verify:retrieval && pnpm verify:ask && pnpm verify:capture && pnpm verify:imports && pnpm verify:entities && pnpm verify:living-identity && pnpm verify:alpha-ratelimit && pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+    "verify:alpha-deletion": "node scripts/verify-alpha-deletion.mjs",
+    "check": "pnpm verify:foundation && pnpm verify:core && pnpm verify:permissions && pnpm verify:editor && pnpm verify:graph && pnpm verify:ai && pnpm verify:inline-ai && pnpm verify:retrieval && pnpm verify:ask && pnpm verify:capture && pnpm verify:imports && pnpm verify:entities && pnpm verify:living-identity && pnpm verify:alpha-ratelimit && pnpm verify:alpha-deletion && pnpm lint && pnpm typecheck && pnpm test && pnpm build",
     "db:generate": "pnpm --filter @lifegraph/db db:generate",
     "db:migrate": "pnpm --filter @lifegraph/db db:migrate",
     "db:check": "pnpm --filter @lifegraph/db db:check"

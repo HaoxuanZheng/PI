@@ -59,6 +59,9 @@ importers:
       '@lifegraph/permissions':
         specifier: workspace:*
         version: link:../../packages/permissions
+      '@lifegraph/privacy':
+        specifier: workspace:*
+        version: link:../../packages/privacy
       '@lifegraph/publications':
         specifier: workspace:*
         version: link:../../packages/publications
@@ -166,6 +169,9 @@ importers:
       '@lifegraph/permissions':
         specifier: workspace:*
         version: link:../permissions
+      '@lifegraph/privacy':
+        specifier: workspace:*
+        version: link:../privacy
       '@lifegraph/publications':
         specifier: workspace:*
         version: link:../publications

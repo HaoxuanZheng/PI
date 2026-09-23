@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const capabilitySchema = z.enum(["READ", "COMMENT", "EDIT", "COLLABORATE", "SHARE", "ADMIN"]);
 export const principalTypeSchema = z.enum(["USER", "CONNECTION", "GROUP", "LINK", "PUBLIC", "SYSTEM_AI"]);
-export const resourceTypeSchema = z.enum(["OBJECT"]);
+export const resourceTypeSchema = z.enum(["OBJECT", "ACCOUNT"]);
 
 export const grantPermissionInputSchema = z.object({
   principalType: principalTypeSchema,

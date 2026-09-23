@@ -1,8 +1,8 @@
 import type { CreateObjectInput, ObjectSnapshot, RestoreRevisionInput, UpdateObjectInput } from "@lifegraph/domain";
 import { decideImportAction, type ImportAction, type ImportProviderName } from "@lifegraph/imports";
-import { and, desc, eq, isNull, sql as statement } from "drizzle-orm";
+import { and, desc, eq, isNull, or, sql as statement } from "drizzle-orm";
 import type { DatabaseClient } from "../index";
-import { auditLogs, objectRevisions, objects, users } from "../schema";
+import { auditLogs, objectRelationships, objectRevisions, objects, users } from "../schema";
 import { createPermissionRepository } from "./permissions";
 
 export class ObjectNotFoundError extends Error {
@@ -380,6 +380,18 @@ export function createObjectRepository(client: DatabaseClient) {
           deletedAt: new Date(),
           updatedAt: revision.createdAt
         }).where(eq(objects.id, objectId));
+
+        // Deletion tombstones both directions of the graph in the same transaction.
+        // Embeddings, files, and publications invalidate via their own triggers;
+        // edges are the one cascade owned here so a deleted object leaves no live relationship.
+        const deletedAt = new Date();
+        await transaction.update(objectRelationships).set({ deletedAt }).where(and(
+          isNull(objectRelationships.deletedAt),
+          or(
+            eq(objectRelationships.sourceObjectId, objectId),
+            eq(objectRelationships.targetObjectId, objectId)
+          )
+        ));
 
         await transaction.insert(auditLogs).values({
           actorUserId,

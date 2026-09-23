@@ -18,7 +18,7 @@ export const changeTypeEnum = pgEnum("change_type", ["CREATE", "UPDATE", "RESTOR
 export const createdByTypeEnum = pgEnum("created_by_type", ["USER", "AI_ACCEPTED", "IMPORT", "SYSTEM_MIGRATION", "RESTORE"]);
 export const capabilityEnum = pgEnum("capability", ["READ", "COMMENT", "EDIT", "COLLABORATE", "SHARE", "ADMIN"]);
 export const principalTypeEnum = pgEnum("principal_type", ["USER", "CONNECTION", "GROUP", "LINK", "PUBLIC", "SYSTEM_AI"]);
-export const resourceTypeEnum = pgEnum("resource_type", ["OBJECT"]);
+export const resourceTypeEnum = pgEnum("resource_type", ["OBJECT", "ACCOUNT"]);
 export const actorTypeEnum = pgEnum("actor_type", ["USER", "SYSTEM", "SYSTEM_AI"]);
 export const relationshipTypeEnum = pgEnum("relationship_type", ["MENTIONS", "RELATED_TO", "PART_OF", "WORKED_ON", "ATTENDED", "KNOWS", "USES_SKILL"]);
 export const publicationTypeEnum = pgEnum("publication_type", ["PROFILE", "PROFESSIONAL", "OBJECT"]);
@@ -42,6 +42,8 @@ export const users = pgTable("users", {
   timezone: text("timezone").notNull().default("UTC"),
   locale: text("locale").notNull().default("en-US"),
   accountStatus: accountStatusEnum("account_status").notNull().default("ACTIVE"),
+  deletionRequestedAt: timestamp("deletion_requested_at", { withTimezone: true, mode: "date" }),
+  deletionPurgeAfter: timestamp("deletion_purge_after", { withTimezone: true, mode: "date" }),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull().defaultNow()
 }, (table) => [uniqueIndex("users_username_lower_uidx").on(sql`lower(${table.username})`)]);

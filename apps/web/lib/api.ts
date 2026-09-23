@@ -9,8 +9,10 @@ import { NextResponse, type NextRequest } from "next/server";
 import { ZodError, type ZodType } from "zod";
 import { getAuthService } from "./auth";
 import { bucketAndKeyFor, getRateLimiter } from "./ratelimit";
-import { InactiveAccountError, provisionActor } from "./actor";
+import { InactiveAccountError, provisionActor, provisionActorAllowingPendingDeletion } from "./actor";
 import { ImportProviderUnavailableError } from "./imports";
+import { AccountDeletionStateError, AccountNotFoundError } from "@lifegraph/db";
+import { PrivacyValidationError } from "@lifegraph/privacy";
 
 export type ApiContext = { actor: AuthUser; requestId: string };
 
@@ -47,7 +49,7 @@ export function apiError(code: string, message: string, status: number, currentR
   );
 }
 
-export async function requireApiContext(request: NextRequest): Promise<ApiContext | NextResponse> {
+export async function requireApiContext(request: NextRequest, options: { allowDeletionPending?: boolean } = {}): Promise<ApiContext | NextResponse> {
   const currentRequestId = requestId(request);
   // Bound unauthenticated abuse before touching auth: too many anonymous
   // requests from one client never reach session lookup.
@@ -65,7 +67,14 @@ export async function requireApiContext(request: NextRequest): Promise<ApiContex
     return handleApiError(error, currentRequestId);
   }
 
-  return { actor: await provisionActor(actor), requestId: currentRequestId };
+  try {
+    const provisioned = options.allowDeletionPending
+      ? await provisionActorAllowingPendingDeletion(actor)
+      : await provisionActor(actor);
+    return { actor: provisioned, requestId: currentRequestId };
+  } catch (error) {
+    return handleApiError(error, currentRequestId);
+  }
 }
 
 export async function parseJson<T>(request: NextRequest, schema: ZodType<T>) {
@@ -89,6 +98,15 @@ export function handleApiError(error: unknown, currentRequestId: string) {
   }
   if (error instanceof InactiveAccountError) {
     return apiError("FORBIDDEN", "The account is not active.", 403, currentRequestId);
+  }
+  if (error instanceof AccountNotFoundError) {
+    return apiError("NOT_FOUND", "The account was not found.", 404, currentRequestId);
+  }
+  if (error instanceof AccountDeletionStateError) {
+    return apiError("DELETION_STATE_CONFLICT", error.message, 409, currentRequestId);
+  }
+  if (error instanceof PrivacyValidationError) {
+    return apiError("VALIDATION_FAILED", error.message, 400, currentRequestId);
   }
   if (error instanceof RevisionConflictError) {
     return apiError("REVISION_CONFLICT", "This object changed after the supplied revision.", 409, currentRequestId);

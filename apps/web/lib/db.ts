@@ -1,5 +1,5 @@
 import { parseServerEnv } from "@lifegraph/config";
-import { createAIOperationRepository, createDatabaseClient, createEntityRepository, createFileRepository, createImportRepository, createPublicReadRepository, createPublicationRepository, createObjectRepository, createPermissionRepository, createRelationshipRepository, createRetrievalRepository, type DatabaseClient } from "@lifegraph/db";
+import { createAIOperationRepository, createAccountRepository, createDatabaseClient, createEntityRepository, createFileRepository, createImportRepository, createPublicReadRepository, createPublicationRepository, createObjectRepository, createPermissionRepository, createRelationshipRepository, createRetrievalRepository, type DatabaseClient } from "@lifegraph/db";
 import { getStoragePort, storageRequiresCleanScan } from "./storage";
 
 const globalDatabase = globalThis as typeof globalThis & { lifeGraphDatabase?: DatabaseClient };
@@ -28,3 +28,7 @@ export function getPublicReadRepository() { return createPublicReadRepository(ge
 export function getEntityRepository() { return createEntityRepository(getDatabaseClient()); }
 export function getImportRepository() { return createImportRepository(getDatabaseClient()); }
 export function getFileRepository() { return createFileRepository(getDatabaseClient(), getStoragePort(), { requireCleanScan: storageRequiresCleanScan() }); }
+
+export function getAccountRepository() {
+  return createAccountRepository(getDatabaseClient());
+}
