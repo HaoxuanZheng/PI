@@ -35,6 +35,9 @@ importers:
       '@lifegraph/ai':
         specifier: workspace:*
         version: link:../../packages/ai
+      '@lifegraph/analytics':
+        specifier: workspace:*
+        version: link:../../packages/analytics
       '@lifegraph/ask':
         specifier: workspace:*
         version: link:../../packages/ask
@@ -107,6 +110,19 @@ importers:
         specifier: 5.9.2
         version: 5.9.2
 
+  packages/analytics:
+    dependencies:
+      zod:
+        specifier: 4.1.5
+        version: 4.1.5
+    devDependencies:
+      typescript:
+        specifier: 5.9.2
+        version: 5.9.2
+      vitest:
+        specifier: 3.2.4
+        version: 3.2.4(@types/node@24.3.0)(supports-color@7.2.0)(tsx@4.20.5)
+
   packages/ask:
     dependencies:
       '@lifegraph/ai':
@@ -154,6 +170,9 @@ importers:
       '@lifegraph/ai':
         specifier: workspace:*
         version: link:../ai
+      '@lifegraph/analytics':
+        specifier: workspace:*
+        version: link:../analytics
       '@lifegraph/config':
         specifier: workspace:*
         version: link:../config

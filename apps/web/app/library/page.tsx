@@ -2,9 +2,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { provisionActor } from "@/lib/actor";
 import { getAuthService } from "@/lib/auth";
-import { getObjectRepository } from "@/lib/db";
+import { getObjectRepository, getOnboardingRepository } from "@/lib/db";
 import { signOut } from "../auth/actions";
 import { createNote } from "./actions";
+import { OnboardingChecklist } from "./onboarding";
 
 export default async function LibraryPage() {
   const auth = await getAuthService();
@@ -12,6 +13,7 @@ export default async function LibraryPage() {
   if (!user) redirect("/auth");
   const actor = await provisionActor(user);
   const items = await getObjectRepository().list(actor.id);
+  const onboarding = await getOnboardingRepository().status(actor.id);
 
   return (
     <main className="libraryShell">
@@ -19,6 +21,7 @@ export default async function LibraryPage() {
       <h1>Your private library</h1>
       <p className="muted">Signed in as {user.email ?? "an authenticated user"}.</p>
       <Link className="button askLink" href="/ask">✦ Ask My Life</Link>
+      <OnboardingChecklist status={onboarding} />
       <section className="libraryGrid">
         <form action={createNote} className="noteForm">
           <p className="eyebrow">Create object</p>

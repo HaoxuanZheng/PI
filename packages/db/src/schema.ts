@@ -44,6 +44,9 @@ export const users = pgTable("users", {
   accountStatus: accountStatusEnum("account_status").notNull().default("ACTIVE"),
   deletionRequestedAt: timestamp("deletion_requested_at", { withTimezone: true, mode: "date" }),
   deletionPurgeAfter: timestamp("deletion_purge_after", { withTimezone: true, mode: "date" }),
+  onboardingGoal: text("onboarding_goal"),
+  onboardingStartedAt: timestamp("onboarding_started_at", { withTimezone: true, mode: "date" }),
+  onboardingCompletedAt: timestamp("onboarding_completed_at", { withTimezone: true, mode: "date" }),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull().defaultNow()
 }, (table) => [uniqueIndex("users_username_lower_uidx").on(sql`lower(${table.username})`)]);
@@ -243,6 +246,17 @@ export const auditLogs = pgTable("audit_logs", {
 }, (table) => [
   index("audit_logs_resource_created_idx").on(table.resourceType, table.resourceId, table.createdAt),
   index("audit_logs_actor_created_idx").on(table.actorUserId, table.createdAt)
+]);
+
+export const analyticsEvents = pgTable("analytics_events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "restrict" }),
+  eventName: text("event_name").notNull(),
+  metadata: jsonb("metadata").$type<Record<string, string | number | boolean | null>>().notNull().default({}),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow()
+}, (table) => [
+  index("analytics_events_user_created_idx").on(table.userId, table.createdAt),
+  index("analytics_events_name_created_idx").on(table.eventName, table.createdAt)
 ]);
 
 export type UserRow = typeof users.$inferSelect;

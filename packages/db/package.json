@@ -1,6 +1,6 @@
 {
   "name": "@lifegraph/db",
-  "version": "0.17.0",
+  "version": "0.18.0",
   "private": true,
   "type": "module",
   "exports": { ".": "./src/index.ts" },
@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@lifegraph/ai": "workspace:*",
+    "@lifegraph/analytics": "workspace:*",
     "@lifegraph/config": "workspace:*",
     "@lifegraph/domain": "workspace:*",
     "@lifegraph/entities": "workspace:*",

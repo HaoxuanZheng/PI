@@ -1,5 +1,5 @@
 import { parseServerEnv } from "@lifegraph/config";
-import { createAIOperationRepository, createAccountRepository, createDatabaseClient, createEntityRepository, createExportRepository, createFileRepository, createImportRepository, createPublicReadRepository, createPublicationRepository, createObjectRepository, createPermissionRepository, createRelationshipRepository, createRetrievalRepository, type DatabaseClient } from "@lifegraph/db";
+import { createAIOperationRepository, createAccountRepository, createDatabaseClient, createEntityRepository, createExportRepository, createFileRepository, createImportRepository, createOnboardingRepository, createPublicReadRepository, createPublicationRepository, createObjectRepository, createPermissionRepository, createRelationshipRepository, createRetrievalRepository, type DatabaseClient } from "@lifegraph/db";
 import { getStoragePort, storageRequiresCleanScan } from "./storage";
 
 const globalDatabase = globalThis as typeof globalThis & { lifeGraphDatabase?: DatabaseClient };
@@ -35,4 +35,8 @@ export function getAccountRepository() {
 
 export function getExportRepository() {
   return createExportRepository(getDatabaseClient());
+}
+
+export function getOnboardingRepository() {
+  return createOnboardingRepository(getDatabaseClient());
 }

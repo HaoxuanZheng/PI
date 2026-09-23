@@ -1,12 +1,13 @@
 "use server";
 
 import { createObjectInputSchema, createRelationshipInputSchema, restoreRevisionInputSchema } from "@lifegraph/domain";
+import { onboardingGoalSchema } from "@lifegraph/analytics";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { provisionActor } from "@/lib/actor";
 import { getAuthService } from "@/lib/auth";
-import { getObjectRepository, getRelationshipRepository } from "@/lib/db";
+import { getObjectRepository, getOnboardingRepository, getRelationshipRepository } from "@/lib/db";
 
 const noteFormSchema = z.object({
   title: z.string().trim().min(1).max(300),
@@ -57,4 +58,27 @@ export async function removeRelationship(formData: FormData) {
   const objectId = z.uuid().parse(formData.get("objectId"));
   await getRelationshipRepository().remove(await actorId(), objectId, z.uuid().parse(formData.get("relationshipId")));
   revalidatePath(`/library/${objectId}`);
+}
+
+export async function startOnboarding() {
+  await getOnboardingRepository().update(await actorId(), { action: "start" });
+  revalidatePath("/library");
+}
+
+export async function selectOnboardingGoal(formData: FormData) {
+  const goal = onboardingGoalSchema.parse(formData.get("goal"));
+  const id = await actorId();
+  const repository = getOnboardingRepository();
+  try {
+    await repository.update(id, { action: "start" });
+  } catch {
+    // Already started: goal selection is the actual intent.
+  }
+  await repository.update(id, { action: "select-goal", goal });
+  revalidatePath("/library");
+}
+
+export async function completeOnboarding() {
+  await getOnboardingRepository().update(await actorId(), { action: "complete" });
+  revalidatePath("/library");
 }

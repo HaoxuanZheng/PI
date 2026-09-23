@@ -1,5 +1,5 @@
 import type { AuthUser } from "@lifegraph/auth";
-import { AIOperationDecisionError, AIOperationNotFoundError, AIOperationValidationError, FileNotFoundError, FileStateError, ImportNotFoundError, ImportStateError, MergeCandidateNotFoundError, MergeCandidateStateError, MergeNotApplicableError, PublicationNotFoundError, PublicationStateError, ObjectNotFoundError, ObjectTypeConflictError, PermissionDeniedError, PermissionNotFoundError, RelationshipNotFoundError, RelationshipValidationError, RetrievalValidationError, RevisionConflictError } from "@lifegraph/db";
+import { AIOperationDecisionError, AIOperationNotFoundError, AIOperationValidationError, FileNotFoundError, FileStateError, ImportNotFoundError, ImportStateError, MergeCandidateNotFoundError, MergeCandidateStateError, MergeNotApplicableError, OnboardingStateError, PublicationNotFoundError, PublicationStateError, ObjectNotFoundError, ObjectTypeConflictError, PermissionDeniedError, PermissionNotFoundError, RelationshipNotFoundError, RelationshipValidationError, RetrievalValidationError, RevisionConflictError } from "@lifegraph/db";
 import { ImportValidationError } from "@lifegraph/imports";
 import { PublicationValidationError } from "@lifegraph/publications";
 import { ImportProviderError } from "@lifegraph/imports/google-drive";
@@ -12,6 +12,7 @@ import { bucketAndKeyFor, getRateLimiter } from "./ratelimit";
 import { InactiveAccountError, provisionActor, provisionActorAllowingPendingDeletion } from "./actor";
 import { ImportProviderUnavailableError } from "./imports";
 import { AccountDeletionStateError, AccountNotFoundError } from "@lifegraph/db";
+import { AnalyticsValidationError } from "@lifegraph/analytics";
 import { ExportOwnershipError, PrivacyValidationError } from "@lifegraph/privacy";
 
 export type ApiContext = { actor: AuthUser; requestId: string };
@@ -105,8 +106,11 @@ export function handleApiError(error: unknown, currentRequestId: string) {
   if (error instanceof AccountDeletionStateError) {
     return apiError("DELETION_STATE_CONFLICT", error.message, 409, currentRequestId);
   }
-  if (error instanceof PrivacyValidationError) {
+  if (error instanceof PrivacyValidationError || error instanceof AnalyticsValidationError) {
     return apiError("VALIDATION_FAILED", error.message, 400, currentRequestId);
+  }
+  if (error instanceof OnboardingStateError) {
+    return apiError("ONBOARDING_STATE_CONFLICT", error.message, 409, currentRequestId);
   }
   if (error instanceof ExportOwnershipError) {
     return apiError("INTERNAL_ERROR", "The export could not be completed.", 500, currentRequestId);
