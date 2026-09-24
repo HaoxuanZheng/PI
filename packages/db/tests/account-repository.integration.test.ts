@@ -109,7 +109,17 @@ integration("account purge", () => {
       await sql`update users set deletion_requested_at = now() - interval '8 days', deletion_purge_after = now() - interval '1 day' where id = ${ownerA}`;
     });
 
+    // Diagnostic: rows visible to the owner right before purge (RLS hides
+    // trigger-marked chunks, so 0 here means the purge DELETE must still
+    // match them through its owner-only policy).
+    const preChunks = await client.sql.begin(async (sql) => {
+      await sql`select set_config('app.current_user_id', ${ownerA}, true)`;
+      return sql`select id, deleted_at from embedding_chunks where owner_id = ${ownerA}`;
+    });
+    console.log(`pre-purge visible chunks: ${preChunks.length}`);
+
     const summary = await accounts.purgeAccount(ownerA);
+    expect(summary.objectsDeleted).toBe(2);
     expect(summary.objectsDeleted).toBe(2);
     expect(summary.publicationsUnpublished).toBe(1);
     expect(summary.grantsRevoked).toBe(1);
