@@ -41,7 +41,7 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-      - run: pnpm install --no-frozen-lockfile
+      - run: pnpm install --frozen-lockfile
       # Superusers bypass row-level security entirely, so integration tests
       # must run as a least-privilege role or tenant isolation is theater.
       # The vector extension is pre-installed because only superusers can.

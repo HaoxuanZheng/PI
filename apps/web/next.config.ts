@@ -4,7 +4,7 @@ const nextConfig: NextConfig = {
   output: "standalone",
   poweredByHeader: false,
   reactStrictMode: true,
-  transpilePackages: ["@lifegraph/auth", "@lifegraph/config", "@lifegraph/db", "@lifegraph/domain", "@lifegraph/permissions"],
+  transpilePackages: ["@lifegraph/auth", "@lifegraph/analytics", "@lifegraph/config", "@lifegraph/db", "@lifegraph/domain", "@lifegraph/permissions", "@lifegraph/privacy", "@lifegraph/ratelimit"],
   async headers() {
     return [
       {
