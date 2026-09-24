@@ -87,6 +87,16 @@ integration("account purge", () => {
       confirm: true
     });
     expect(published.status).toBe("PUBLISHED");
+    // Profile publications have no source object, so only the bulk purge step
+    // (not the per-object trigger) can unpublish them.
+    const profile = await publications.publishProfile(ownerA, {
+      publicationType: "PROFILE",
+      displayName: "Owner A",
+      headline: null,
+      sections: [{ type: "NOTE", heading: "Notes", sourceObjectIds: [first.object.id], fields: ["title"] }],
+      confirm: true
+    });
+    expect(profile.status).toBe("PUBLISHED");
     expect(storage.objects.size).toBeGreaterThan(0);
 
     await accounts.requestDeletion(ownerA);
