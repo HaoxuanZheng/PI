@@ -76,7 +76,8 @@ integration("account purge", () => {
     await permissions.grant(ownerA, first.object.id, { principalType: "USER", principalId: ownerB, capability: "READ" }, "test-grant");
     await imports.start(ownerA, "GOOGLE_DRIVE");
     await onboarding.update(ownerA, { action: "start" });
-    await retrieval.indexObject(ownerA, first.object.id, embeddingProvider);
+    const indexed = await retrieval.indexObject(ownerA, first.object.id, embeddingProvider);
+    expect(indexed.indexedChunks).toBeGreaterThanOrEqual(1);
     const intent = await files.createIntent(ownerA, { objectId: first.object.id, filename: "note.pdf", mimeType: "application/pdf", byteSize: 1024 });
     await files.complete(ownerA, intent.file.id, { checksum: "c".repeat(64), byteSize: 1024 });
     const published = await publications.publishObject(ownerA, {
