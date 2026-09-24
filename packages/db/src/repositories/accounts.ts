@@ -213,7 +213,7 @@ export function createAccountRepository(client: DatabaseClient, storage: Storage
           isNull(permissionGrants.revokedAt)
         )).returning({ id: permissionGrants.id });
 
-        const failed = await transaction.update(imports).set({ status: "FAILED", updatedAt: new Date() }).where(and(
+        const failed = await transaction.update(imports).set({ status: "FAILED", completedAt: new Date(), updatedAt: new Date() }).where(and(
           eq(imports.userId, ownerId),
           inArray(imports.status, ["PENDING", "RUNNING"])
         )).returning({ id: imports.id });
