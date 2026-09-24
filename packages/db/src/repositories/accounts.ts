@@ -218,17 +218,14 @@ export function createAccountRepository(client: DatabaseClient, storage: Storage
           inArray(imports.status, ["PENDING", "RUNNING"])
         )).returning({ id: imports.id });
 
-        const vectors = await transaction.select({ id: embeddingChunks.id }).from(embeddingChunks)
-          .where(eq(embeddingChunks.ownerId, ownerId));
-        if (vectors.length) {
-          await transaction.delete(embeddingChunks).where(eq(embeddingChunks.ownerId, ownerId));
-        }
+        // Vectors and analytics identifiers hard-delete by owner. The read
+        // policies hide soft-deleted chunks, so counting happens through
+        // DELETE ... RETURNING rather than a prior SELECT.
+        const vectors = await transaction.delete(embeddingChunks).where(eq(embeddingChunks.ownerId, ownerId))
+          .returning({ id: embeddingChunks.id });
 
-        const events = await transaction.select({ id: analyticsEvents.id }).from(analyticsEvents)
-          .where(eq(analyticsEvents.userId, ownerId));
-        if (events.length) {
-          await transaction.delete(analyticsEvents).where(eq(analyticsEvents.userId, ownerId));
-        }
+        const events = await transaction.delete(analyticsEvents).where(eq(analyticsEvents.userId, ownerId))
+          .returning({ id: analyticsEvents.id });
 
         const purgedAt = new Date();
         await transaction.update(users).set({ deletionPurgedAt: purgedAt, updatedAt: purgedAt })
