@@ -3,9 +3,7 @@ import { deletionGraceDays, purgeAfter } from "@lifegraph/privacy";
 import type { StoragePort } from "@lifegraph/storage";
 import type { DatabaseClient } from "../index";
 import {
-  analyticsEvents,
   auditLogs,
-  embeddingChunks,
   imports,
   permissionGrants,
   publications,
@@ -218,14 +216,16 @@ export function createAccountRepository(client: DatabaseClient, storage: Storage
           inArray(imports.status, ["PENDING", "RUNNING"])
         )).returning({ id: imports.id });
 
-        // Vectors and analytics identifiers hard-delete by owner. The read
-        // policies hide soft-deleted chunks, so counting happens through
-        // DELETE ... RETURNING rather than a prior SELECT.
-        const vectors = await transaction.delete(embeddingChunks).where(eq(embeddingChunks.ownerId, ownerId))
-          .returning({ id: embeddingChunks.id });
+        // Vectors and analytics identifiers hard-delete by owner. Written as
+        // raw SQL: the read policies hide trigger-marked chunks, and the rows
+        // must match regardless of their soft-deleted state.
+        const vectors = await transaction.execute(
+          statement`DELETE FROM embedding_chunks WHERE owner_id = ${ownerId}::uuid RETURNING id`
+        );
 
-        const events = await transaction.delete(analyticsEvents).where(eq(analyticsEvents.userId, ownerId))
-          .returning({ id: analyticsEvents.id });
+        const events = await transaction.execute(
+          statement`DELETE FROM analytics_events WHERE user_id = ${ownerId}::uuid RETURNING id`
+        );
 
         const purgedAt = new Date();
         await transaction.update(users).set({ deletionPurgedAt: purgedAt, updatedAt: purgedAt })
