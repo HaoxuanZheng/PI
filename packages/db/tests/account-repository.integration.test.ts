@@ -122,7 +122,7 @@ integration("account purge", () => {
     expect(await objects.list(ownerA, 100)).toHaveLength(0);
     expect((await objects.revisions(ownerA, first.object.id)).length).toBeGreaterThanOrEqual(2);
     expect(await relationships.related(ownerA, first.object.id)).toHaveLength(0);
-    expect(await count(ownerA, "publications", "status = 'PUBLISHED'")).toBe(0);
+    expect(await count(ownerA, "publications", `status = 'PUBLISHED' AND owner_id = '${ownerA}'::uuid`)).toBe(0);
     expect(await count(ownerA, "embedding_chunks", "")).toBe(0);
     expect(await count(ownerA, "analytics_events", "")).toBe(0);
     expect(await count(ownerA, "permissions", "revoked_at IS NULL")).toBe(0);
