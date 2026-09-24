@@ -44,6 +44,7 @@ export const users = pgTable("users", {
   accountStatus: accountStatusEnum("account_status").notNull().default("ACTIVE"),
   deletionRequestedAt: timestamp("deletion_requested_at", { withTimezone: true, mode: "date" }),
   deletionPurgeAfter: timestamp("deletion_purge_after", { withTimezone: true, mode: "date" }),
+  deletionPurgedAt: timestamp("deletion_purged_at", { withTimezone: true, mode: "date" }),
   onboardingGoal: text("onboarding_goal"),
   onboardingStartedAt: timestamp("onboarding_started_at", { withTimezone: true, mode: "date" }),
   onboardingCompletedAt: timestamp("onboarding_completed_at", { withTimezone: true, mode: "date" }),

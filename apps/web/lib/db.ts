@@ -30,7 +30,7 @@ export function getImportRepository() { return createImportRepository(getDatabas
 export function getFileRepository() { return createFileRepository(getDatabaseClient(), getStoragePort(), { requireCleanScan: storageRequiresCleanScan() }); }
 
 export function getAccountRepository() {
-  return createAccountRepository(getDatabaseClient());
+  return createAccountRepository(getDatabaseClient(), getStoragePort());
 }
 
 export function getExportRepository() {
