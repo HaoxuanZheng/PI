@@ -19,6 +19,11 @@ postpones (`0016`).
   skipped. Every step is idempotent, so a failed purge retries safely with
   the same endpoint, but a completed purge (`deletion_purged_at` set) and
   post-purge cancellation both refuse.
+- Vectors and analytics identifiers hard-delete BEFORE the object loop.
+  Row-level security filters `RETURNING` output through the SELECT policies,
+  and the embedding SELECT policy hides trigger-marked chunks: deleting
+  after the loop would remove the rows yet report zero. Order is load-bearing
+  here, not incidental.
 - Bulk steps in one transaction: unpublish all `PUBLISHED` publications,
   revoke all active issued grants, fail all live imports, hard-delete owned
   embedding vectors, and hard-delete owned analytics events. Stored file

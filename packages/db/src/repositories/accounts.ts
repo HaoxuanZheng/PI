@@ -164,6 +164,23 @@ export function createAccountRepository(client: DatabaseClient, storage: Storage
       });
       void gate;
 
+      // Hard-delete vectors and analytics identifiers FIRST, while their rows
+      // are still live. Row-level security filters RETURNING output through
+      // the SELECT policies, and the embedding SELECT policy hides
+      // trigger-marked chunks: deleting after the object loop below would
+      // remove the rows yet report zero. Deleting first keeps the counts
+      // honest and the bytes unrecoverable either way.
+      const erased = await client.db.transaction(async (transaction) => {
+        await setOwnerContext(transaction, ownerId);
+        const vectors = await transaction.execute(
+          statement`DELETE FROM embedding_chunks WHERE owner_id = ${ownerId}::uuid RETURNING id`
+        );
+        const events = await transaction.execute(
+          statement`DELETE FROM analytics_events WHERE user_id = ${ownerId}::uuid RETURNING id`
+        );
+        return { embeddingsPurged: vectors.length, analyticsDeleted: events.length };
+      });
+
       // Soft-delete every live object through the standard path, so each one
       // gains a DELETE revision, tombstones its edges, and triggers embedding,
       // file, and publication invalidation. Paged because list() caps at 100.
@@ -216,17 +233,6 @@ export function createAccountRepository(client: DatabaseClient, storage: Storage
           inArray(imports.status, ["PENDING", "RUNNING"])
         )).returning({ id: imports.id });
 
-        // Vectors and analytics identifiers hard-delete by owner. Written as
-        // raw SQL: the read policies hide trigger-marked chunks, and the rows
-        // must match regardless of their soft-deleted state.
-        const vectors = await transaction.execute(
-          statement`DELETE FROM embedding_chunks WHERE owner_id = ${ownerId}::uuid RETURNING id`
-        );
-
-        const events = await transaction.execute(
-          statement`DELETE FROM analytics_events WHERE user_id = ${ownerId}::uuid RETURNING id`
-        );
-
         const purgedAt = new Date();
         await transaction.update(users).set({ deletionPurgedAt: purgedAt, updatedAt: purgedAt })
           .where(eq(users.id, ownerId));
@@ -235,8 +241,6 @@ export function createAccountRepository(client: DatabaseClient, storage: Storage
           publicationsUnpublished: unpublished.length,
           grantsRevoked: revoked.length,
           importsFailed: failed.length,
-          embeddingsPurged: vectors.length,
-          analyticsDeleted: events.length,
           purgedAt
         };
       });
@@ -262,9 +266,9 @@ export function createAccountRepository(client: DatabaseClient, storage: Storage
             publicationCount: bulk.publicationsUnpublished,
             grantCount: bulk.grantsRevoked,
             importCount: bulk.importsFailed,
-            embeddingCount: bulk.embeddingsPurged,
+            embeddingCount: erased.embeddingsPurged,
             fileCount: filesPurged,
-            analyticsCount: bulk.analyticsDeleted
+            analyticsCount: erased.analyticsDeleted
           }
         });
       });
@@ -274,9 +278,9 @@ export function createAccountRepository(client: DatabaseClient, storage: Storage
         publicationsUnpublished: bulk.publicationsUnpublished,
         grantsRevoked: bulk.grantsRevoked,
         importsFailed: bulk.importsFailed,
-        embeddingsPurged: bulk.embeddingsPurged,
+        embeddingsPurged: erased.embeddingsPurged,
         filesPurged,
-        analyticsDeleted: bulk.analyticsDeleted,
+        analyticsDeleted: erased.analyticsDeleted,
         purgedAt: bulk.purgedAt.toISOString()
       };
     }
