@@ -22,7 +22,8 @@ postpones (`0016`).
 - Bulk steps in one transaction: unpublish all `PUBLISHED` publications,
   revoke all active issued grants, fail all live imports, hard-delete owned
   embedding vectors, and hard-delete owned analytics events. Stored file
-  bytes go through `purgeDeleted` in bounded batches until none remain.
+  bytes drain through one bounded `purgeDeleted` batch; rows beyond the
+  batch stay soft-deleted and unreadable for a future job to drain.
 - Canonical rows are never hard-deleted: revisions, merges, imports history,
   grants (revoked, not removed), and audit stay. Owners keep `READ` on their
   own deleted objects, so purged history remains auditable to nobody else.

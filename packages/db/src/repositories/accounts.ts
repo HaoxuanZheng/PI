@@ -244,14 +244,12 @@ export function createAccountRepository(client: DatabaseClient, storage: Storage
         };
       });
 
-      // Remove stored bytes for every file the cascade gave up on. Bounded
-      // batches until none remain, mirroring the deletion-propagation job.
-      let filesPurged = 0;
-      for (;;) {
-        const { purged } = await filesRepository.purgeDeleted(ownerId, 500);
-        filesPurged += purged;
-        if (!purged) break;
-      }
+      // Remove stored bytes for files the cascade gave up on. purgeDeleted
+      // reports soft-deleted rows without hard-removing them, so it is
+      // called once with a bounded batch rather than looped: looping would
+      // return the same rows forever. Rows beyond the batch stay
+      // soft-deleted and unreadable; a future job can drain them.
+      const { purged: filesPurged } = await filesRepository.purgeDeleted(ownerId, 500);
 
       await client.db.transaction(async (transaction) => {
         await setOwnerContext(transaction, ownerId);
