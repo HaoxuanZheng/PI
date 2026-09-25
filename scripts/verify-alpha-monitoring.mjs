@@ -6,8 +6,11 @@ const required = [
   "apps/web/next.config.ts",
   "apps/web/lib/api.ts",
   "apps/web/app/api/health/route.ts",
+  "apps/web/app/api/ready/route.ts",
   "docs/architecture/0024-monitoring-security.md",
-  "docs/runbooks/staging-deployment.md"
+  "docs/architecture/0027-launch-readiness.md",
+  "docs/runbooks/staging-deployment.md",
+  "docs/runbooks/launch-checklist.md"
 ];
 
 await Promise.all(required.map((path) => access(resolve(root, path))));
@@ -43,5 +46,15 @@ if (/process\.env\.\w+\s*[^&|]*\}/.test(health) && health.includes("DATABASE_URL
 
 const runbook = await readFile(resolve(root, "docs/runbooks/staging-deployment.md"), "utf8");
 if (!runbook.includes("Admin MFA")) throw new Error("Runbook must document admin MFA enforcement");
+
+const ready = await readFile(resolve(root, "apps/web/app/api/ready/route.ts"), "utf8");
+for (const invariant of ["select 1", "not_ready", "checkRateLimit", "x-request-id", "503"]) {
+  if (!ready.includes(invariant)) throw new Error(`Readiness probe missing ${invariant}`);
+}
+
+const launch = await readFile(resolve(root, "docs/runbooks/launch-checklist.md"), "utf8");
+for (const invariant of ["Legal and compliance", "BYPASSRLS", "/api/ready", "Idempotency"]) {
+  if (!launch.includes(invariant)) throw new Error(`Launch checklist missing ${invariant}`);
+}
 
 console.log(`Monitoring and security hardening verified (${required.length} required files).`);
