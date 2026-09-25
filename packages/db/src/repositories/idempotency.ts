@@ -107,11 +107,12 @@ async function findByKey(
   return { statusCode: row.statusCode, body: row.body };
 }
 
-function isUniqueViolation(error: unknown) {
-  return (
-    !!error &&
-    typeof error === "object" &&
-    "code" in error &&
-    (error as { code: unknown }).code === "23505"
-  );
+function isUniqueViolation(error: unknown): boolean {
+  // Drizzle wraps driver failures, so walk the cause chain for Postgres 23505.
+  let current: unknown = error;
+  for (let depth = 0; depth < 5 && !!current && typeof current === "object"; depth++) {
+    if ((current as { code?: unknown }).code === "23505") return true;
+    current = (current as { cause?: unknown }).cause;
+  }
+  return false;
 }
