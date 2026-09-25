@@ -49,6 +49,7 @@ unchecked.
 
 ## Explicitly deferred
 
-Idempotency keys for retried POSTs, external analytics pipeline, and error
-tracking DSN are accepted gaps for alpha, recorded here so they are
-decisions rather than oversights.
+External analytics pipeline and error tracking DSN are accepted gaps for
+alpha, recorded here so they are decisions rather than oversights.
+Idempotency keys were deferred and have since shipped (`0028`); large-response
+routes such as account export stay unwired by design.

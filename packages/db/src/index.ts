@@ -27,6 +27,7 @@ export * from "./schema";
 export * from "./repositories/objects";
 export * from "./repositories/accounts";
 export * from "./repositories/exports";
+export * from "./repositories/idempotency";
 export * from "./repositories/onboarding";
 export * from "./repositories/permissions";
 export * from "./repositories/relationships";

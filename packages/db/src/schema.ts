@@ -249,8 +249,7 @@ export const auditLogs = pgTable("audit_logs", {
   index("audit_logs_actor_created_idx").on(table.actorUserId, table.createdAt)
 ]);
 
-export const analyticsEvents = pgTable("analytics_events", {
-  id: uuid("id").primaryKey().defaultRandom(),
+export const analyticsEvents = pgTable("analytics_events", {  id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "restrict" }),
   eventName: text("event_name").notNull(),
   metadata: jsonb("metadata").$type<Record<string, string | number | boolean | null>>().notNull().default({}),
@@ -258,6 +257,21 @@ export const analyticsEvents = pgTable("analytics_events", {
 }, (table) => [
   index("analytics_events_user_created_idx").on(table.userId, table.createdAt),
   index("analytics_events_name_created_idx").on(table.eventName, table.createdAt)
+]);
+
+export const idempotencyKeys = pgTable("idempotency_keys", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "restrict" }),
+  idempotencyKey: text("idempotency_key").notNull(),
+  method: text("method").notNull(),
+  path: text("path").notNull(),
+  statusCode: integer("status_code"),
+  responseBody: jsonb("response_body").$type<unknown>(),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+  expiresAt: timestamp("expires_at", { withTimezone: true, mode: "date" }).notNull()
+}, (table) => [
+  uniqueIndex("idempotency_keys_user_key_uidx").on(table.userId, table.idempotencyKey),
+  index("idempotency_keys_expires_idx").on(table.expiresAt)
 ]);
 
 export type UserRow = typeof users.$inferSelect;

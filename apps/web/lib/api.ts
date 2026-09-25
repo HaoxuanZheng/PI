@@ -1,5 +1,5 @@
 import type { AuthUser } from "@lifegraph/auth";
-import { AIOperationDecisionError, AIOperationNotFoundError, AIOperationValidationError, FileNotFoundError, FileStateError, ImportNotFoundError, ImportStateError, MergeCandidateNotFoundError, MergeCandidateStateError, MergeNotApplicableError, OnboardingStateError, PublicationNotFoundError, PublicationStateError, ObjectNotFoundError, ObjectTypeConflictError, PermissionDeniedError, PermissionNotFoundError, RelationshipNotFoundError, RelationshipValidationError, RetrievalValidationError, RevisionConflictError } from "@lifegraph/db";
+import { AIOperationDecisionError, AIOperationNotFoundError, AIOperationValidationError, FileNotFoundError, FileStateError, IdempotencyInFlightError, IdempotencyKeyError, ImportNotFoundError, ImportStateError, MergeCandidateNotFoundError, MergeCandidateStateError, MergeNotApplicableError, OnboardingStateError, PublicationNotFoundError, PublicationStateError, ObjectNotFoundError, ObjectTypeConflictError, PermissionDeniedError, PermissionNotFoundError, RelationshipNotFoundError, RelationshipValidationError, RetrievalValidationError, RevisionConflictError } from "@lifegraph/db";
 import { ImportValidationError } from "@lifegraph/imports";
 import { PublicationValidationError } from "@lifegraph/publications";
 import { ImportProviderError } from "@lifegraph/imports/google-drive";
@@ -121,8 +121,11 @@ export function handleApiError(error: unknown, currentRequestId: string) {
   if (error instanceof AccountDeletionStateError) {
     return apiError("DELETION_STATE_CONFLICT", error.message, 409, currentRequestId);
   }
-  if (error instanceof PrivacyValidationError || error instanceof AnalyticsValidationError) {
+  if (error instanceof PrivacyValidationError || error instanceof AnalyticsValidationError || error instanceof IdempotencyKeyError) {
     return apiError("VALIDATION_FAILED", error.message, 400, currentRequestId);
+  }
+  if (error instanceof IdempotencyInFlightError) {
+    return apiError("IDEMPOTENCY_CONFLICT", error.message, 409, currentRequestId, undefined, { "retry-after": "1" });
   }
   if (error instanceof OnboardingStateError) {
     return apiError("ONBOARDING_STATE_CONFLICT", error.message, 409, currentRequestId);
