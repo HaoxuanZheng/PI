@@ -1,6 +1,6 @@
 {
   "name": "lifegraph",
-  "version": "0.23.0",
+  "version": "0.24.0",
   "private": true,
   "packageManager": "pnpm@11.19.0",
   "engines": {
@@ -33,7 +33,8 @@
     "verify:alpha-monitoring": "node scripts/verify-alpha-monitoring.mjs",
     "verify:alpha-idempotency": "node scripts/verify-alpha-idempotency.mjs",
     "verify:alpha-connections": "node scripts/verify-alpha-connections.mjs",
-    "check": "pnpm verify:foundation && pnpm verify:core && pnpm verify:permissions && pnpm verify:editor && pnpm verify:graph && pnpm verify:ai && pnpm verify:inline-ai && pnpm verify:retrieval && pnpm verify:ask && pnpm verify:capture && pnpm verify:imports && pnpm verify:entities && pnpm verify:living-identity && pnpm verify:alpha-ratelimit && pnpm verify:alpha-deletion && pnpm verify:alpha-export && pnpm verify:alpha-onboarding && pnpm verify:alpha-monitoring && pnpm verify:alpha-idempotency && pnpm verify:alpha-connections && pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+    "verify:alpha-oauth": "node scripts/verify-alpha-oauth.mjs",
+    "check": "pnpm verify:foundation && pnpm verify:core && pnpm verify:permissions && pnpm verify:editor && pnpm verify:graph && pnpm verify:ai && pnpm verify:inline-ai && pnpm verify:retrieval && pnpm verify:ask && pnpm verify:capture && pnpm verify:imports && pnpm verify:entities && pnpm verify:living-identity && pnpm verify:alpha-ratelimit && pnpm verify:alpha-deletion && pnpm verify:alpha-export && pnpm verify:alpha-onboarding && pnpm verify:alpha-monitoring && pnpm verify:alpha-idempotency && pnpm verify:alpha-connections && pnpm verify:alpha-oauth && pnpm lint && pnpm typecheck && pnpm test && pnpm build",
     "db:generate": "pnpm --filter @lifegraph/db db:generate",
     "db:migrate": "pnpm --filter @lifegraph/db db:migrate",
     "db:check": "pnpm --filter @lifegraph/db db:check"

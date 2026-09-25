@@ -120,6 +120,13 @@
       "when": 1787994000000,
       "tag": "0016_provider_connections",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1787995800000,
+      "tag": "0017_oauth_states",
+      "breakpoints": true
     }
   ]
 }

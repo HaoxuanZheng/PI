@@ -288,6 +288,16 @@ export const providerConnections = pgTable("provider_connections", {
   uniqueIndex("provider_connections_user_provider_uidx").on(table.userId, table.provider)
 ]);
 
+export const oauthStates = pgTable("oauth_states", {
+  state: text("state").primaryKey(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "restrict" }),
+  provider: text("provider").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+  expiresAt: timestamp("expires_at", { withTimezone: true, mode: "date" }).notNull()
+}, (table) => [
+  index("oauth_states_expires_idx").on(table.expiresAt)
+]);
+
 export type UserRow = typeof users.$inferSelect;
 export type ObjectRow = typeof objects.$inferSelect;
 export type ObjectRevisionRow = typeof objectRevisions.$inferSelect;

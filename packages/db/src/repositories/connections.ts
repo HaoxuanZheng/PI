@@ -3,8 +3,10 @@ import {
   ConnectionCryptoError,
   connectionStatusOf,
   expiryFromNow,
+  isGoogleProvider,
   openToken,
   parseTokenKey,
+  refreshGoogleToken,
   sealToken,
   type ConnectInput,
   type ConnectionProvider,
@@ -38,7 +40,41 @@ async function setOwnerContext(transaction: Transaction, ownerId: string) {
 }
 
 function tokenKey() {
-  return parseTokenKey(process.env.OAUTH_TOKEN_KEY);
+  try {
+    return parseTokenKey(process.env.OAUTH_TOKEN_KEY);
+  } catch {
+    throw new ConnectionCryptoError("Token encryption is not configured");
+  }
+}
+
+function googleCredentials(): { clientId: string; clientSecret: string } | null {
+  const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
+  if (!clientId || !clientSecret) return null;
+  return { clientId, clientSecret };
+}
+
+async function tryRefresh(
+  key: Buffer,
+  sealedRefresh: SealedToken | null,
+  provider: ConnectionProvider
+): Promise<{ accessToken: string; refreshToken: string | null; expiresInSeconds: number } | null> {
+  if (!sealedRefresh || !isGoogleProvider(provider)) return null;
+  const creds = googleCredentials();
+  if (!creds) return null;
+  try {
+    const rotated = await refreshGoogleToken({
+      ...creds,
+      refreshToken: openToken(key, sealedRefresh)
+    });
+    return {
+      accessToken: rotated.access_token,
+      refreshToken: rotated.refresh_token ?? null,
+      expiresInSeconds: rotated.expires_in
+    };
+  } catch {
+    return null;
+  }
 }
 
 function toSummary(row: typeof providerConnections.$inferSelect): ConnectionSummary {
@@ -129,26 +165,35 @@ export function createConnectionRepository(client: DatabaseClient) {
     },
 
     /**
-     * Opens a live token for server-side import work. Throws when absent or
-     * expired so callers fall back explicitly rather than sending dead tokens.
+     * Opens a live token for server-side import work. Expired Google rows
+     * refresh transparently when a refresh token and OAuth credentials are
+     * configured; anything unusable throws so callers fall back explicitly
+     * rather than sending dead tokens. Refresh failures degrade to the same
+     * absence: the operator-token fallback keeps imports working.
      */
     async liveToken(ownerId: string, provider: ConnectionProvider): Promise<LiveToken> {
+      const key = tokenKey();
       return client.db.transaction(async (transaction) => {
         await setOwnerContext(transaction, ownerId);
         const [row] = await transaction.select().from(providerConnections).where(
           and(eq(providerConnections.userId, ownerId), eq(providerConnections.provider, provider))
         ).limit(1);
         if (!row) throw new ConnectionNotFoundError();
-        if (connectionStatusOf(row.expiresAt) !== "connected") {
-          throw new ConnectionNotFoundError();
+        if (connectionStatusOf(row.expiresAt) === "connected") {
+          return { provider, accessToken: openToken(key, row.sealedAccessToken as SealedToken) };
         }
-        let key: Buffer;
-        try {
-          key = tokenKey();
-        } catch {
-          throw new ConnectionCryptoError("Token encryption is not configured");
-        }
-        return { provider, accessToken: openToken(key, row.sealedAccessToken as SealedToken) };
+        const refreshed = await tryRefresh(key, row.sealedRefreshToken as SealedToken | null, provider);
+        if (!refreshed) throw new ConnectionNotFoundError();
+        const now = new Date();
+        await transaction.update(providerConnections).set({
+          sealedAccessToken: sealToken(key, refreshed.accessToken),
+          sealedRefreshToken: refreshed.refreshToken ? sealToken(key, refreshed.refreshToken) : row.sealedRefreshToken,
+          expiresAt: expiryFromNow(refreshed.expiresInSeconds),
+          updatedAt: now
+        }).where(
+          and(eq(providerConnections.userId, ownerId), eq(providerConnections.provider, provider))
+        );
+        return { provider, accessToken: refreshed.accessToken };
       });
     }
   };

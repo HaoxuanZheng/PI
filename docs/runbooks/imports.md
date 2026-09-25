@@ -11,11 +11,15 @@ to a provider, and imported content is always `PRIVATE`.
 | `GOOGLE_CONTACTS_ACCESS_TOKEN` | for Contacts imports | Server-only read-only People API token (`contacts.readonly`). |
 | `NOTION_API_TOKEN` | for Notion imports | Server-only Notion integration token. Only pages shared with the integration are visible. |
 
-There is still no OAuth consent flow, so every provider token is operator-supplied or user-supplied.
+Google Drive and Contacts support OAuth consent; Notion still needs an operator-supplied or manually stored token until its dance gets its own slice.
 
 ## User connections
 
 `POST /api/v1/connections` stores a user's own provider token (`provider`, `accessToken`, optional `refreshToken`, `scopes`, `expiresInSeconds`), sealed with AES-256-GCM under server-only `OAUTH_TOKEN_KEY` (`openssl rand -hex 32`). `GET /api/v1/connections` reports connected/expired per provider and never returns token material; `DELETE /api/v1/connections/:provider` removes it. Importers resolve per request: a live user connection wins, absent or expired connections fall back to the operator token, and undecryptable rows fail closed. A provider with neither token returns `501 IMPORT_PROVIDER_UNAVAILABLE`.
+
+## Google OAuth consent
+
+`GET /api/v1/connections/google/start?provider=GOOGLE_DRIVE|GOOGLE_CONTACTS` mints a single-use state and redirects to Google consent with read-only scopes. Google redirects back to `/api/v1/connections/google/callback`, which consumes the state once for its owner, exchanges the code, and seals both tokens. Requires `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET` with the callback URL registered in the Google Cloud console. Expired Google rows with a refresh token rotate transparently on next use; revoked ones fall back to the operator token. Notion stays on manually stored tokens.
 
 A provider without its token returns `501 IMPORT_PROVIDER_UNAVAILABLE`. All three providers are
 implemented; `GOOGLE_DRIVE`, `GOOGLE_CONTACTS`, and `NOTION` are the accepted values.

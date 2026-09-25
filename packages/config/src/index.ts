@@ -29,7 +29,13 @@ const serverSchema = publicSchema.extend({
   NOTION_API_TOKEN: z.union([z.string().min(1), z.literal("")]).optional(),
   // Seals per-user provider tokens (AES-256-GCM, 64 hex chars). Required in
   // production once connections exist; without it connect() refuses.
-  OAUTH_TOKEN_KEY: z.union([z.string().regex(/^[0-9a-fA-F]{64}$/), z.literal("")]).optional()
+  OAUTH_TOKEN_KEY: z.union([z.string().regex(/^[0-9a-fA-F]{64}$/), z.literal("")]).optional(),
+  // Google OAuth consent (Drive + Contacts importers). Redirect URI is
+  // `${NEXT_PUBLIC_APP_URL}/api/v1/connections/google/callback` and must be
+  // registered in the Google Cloud console. Absent credentials keep the
+  // operator-token and manual-connect paths working.
+  GOOGLE_OAUTH_CLIENT_ID: z.union([z.string().min(1), z.literal("")]).optional(),
+  GOOGLE_OAUTH_CLIENT_SECRET: z.union([z.string().min(1), z.literal("")]).optional()
 }).superRefine((value, context) => {
   if (value.NODE_ENV === "production" && !value.SENTRY_DSN) {
     context.addIssue({ code: "custom", path: ["SENTRY_DSN"], message: "SENTRY_DSN is required in production" });

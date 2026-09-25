@@ -1,5 +1,5 @@
 import { parseServerEnv } from "@lifegraph/config";
-import { createAIOperationRepository, createAccountRepository, createConnectionRepository, createDatabaseClient, createEntityRepository, createExportRepository, createFileRepository, createIdempotencyRepository, createImportRepository, createOnboardingRepository, createPublicReadRepository, createPublicationRepository, createObjectRepository, createPermissionRepository, createRelationshipRepository, createRetrievalRepository, type DatabaseClient } from "@lifegraph/db";
+import { createAIOperationRepository, createAccountRepository, createConnectionRepository, createDatabaseClient, createEntityRepository, createExportRepository, createFileRepository, createIdempotencyRepository, createImportRepository, createOAuthStateRepository, createOnboardingRepository, createPublicReadRepository, createPublicationRepository, createObjectRepository, createPermissionRepository, createRelationshipRepository, createRetrievalRepository, type DatabaseClient } from "@lifegraph/db";
 import { getStoragePort, storageRequiresCleanScan } from "./storage";
 
 const globalDatabase = globalThis as typeof globalThis & { lifeGraphDatabase?: DatabaseClient };
@@ -47,4 +47,8 @@ export function getIdempotencyRepository() {
 
 export function getConnectionRepository() {
   return createConnectionRepository(getDatabaseClient());
+}
+
+export function getOAuthStateRepository() {
+  return createOAuthStateRepository(getDatabaseClient());
 }

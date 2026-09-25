@@ -9,9 +9,24 @@ export class ConnectionCryptoError extends Error {
   readonly code = "CONNECTION_CRYPTO_FAILED";
 }
 
-/** Import-capable providers share one vault; OAuth dances land per provider later. */
+/** Import-capable providers share one vault; Google dances first, Notion later. */
 export const connectionProviderSchema = z.enum(["GOOGLE_DRIVE", "GOOGLE_CONTACTS", "NOTION"]);
 export type ConnectionProvider = z.infer<typeof connectionProviderSchema>;
+
+export type GoogleProvider = Extract<ConnectionProvider, "GOOGLE_DRIVE" | "GOOGLE_CONTACTS">;
+
+const googleScopeMap: Record<GoogleProvider, string> = {
+  GOOGLE_DRIVE: "https://www.googleapis.com/auth/drive.readonly",
+  GOOGLE_CONTACTS: "https://www.googleapis.com/auth/contacts.readonly"
+};
+
+export function googleScopes(provider: GoogleProvider): string[] {
+  return [googleScopeMap[provider]];
+}
+
+export function isGoogleProvider(provider: ConnectionProvider): provider is GoogleProvider {
+  return provider === "GOOGLE_DRIVE" || provider === "GOOGLE_CONTACTS";
+}
 
 export const connectInputSchema = z.object({
   provider: connectionProviderSchema,
@@ -69,4 +84,76 @@ export function expiryFromNow(expiresInSeconds: number | null): Date | null {
 export function connectionStatusOf(expiresAt: Date | null, now = Date.now()): ConnectionStatus {
   if (!expiresAt) return "connected";
   return expiresAt.getTime() <= now ? "expired" : "connected";
+}
+
+const googleAuthorizationEndpoint = "https://accounts.google.com/o/oauth2/v2/auth";
+const googleTokenEndpoint = "https://oauth2.googleapis.com/token";
+
+export const googleTokenSchema = z.object({
+  access_token: z.string().min(1),
+  refresh_token: z.string().min(1).optional(),
+  expires_in: z.number().int().positive(),
+  scope: z.string().optional(),
+  token_type: z.literal("Bearer")
+});
+export type GoogleTokenSet = z.infer<typeof googleTokenSchema>;
+
+/** Consent URL for the provider's read-only scopes. State is caller-managed. */
+export function googleAuthUrl(input: {
+  clientId: string;
+  redirectUri: string;
+  provider: GoogleProvider;
+  state: string;
+}): string {
+  const url = new URL(googleAuthorizationEndpoint);
+  url.searchParams.set("client_id", input.clientId);
+  url.searchParams.set("redirect_uri", input.redirectUri);
+  url.searchParams.set("response_type", "code");
+  url.searchParams.set("scope", googleScopes(input.provider).join(" "));
+  url.searchParams.set("access_type", "offline");
+  url.searchParams.set("prompt", "consent");
+  url.searchParams.set("state", input.state);
+  return url.toString();
+}
+
+async function postTokenForm(body: Record<string, string>): Promise<GoogleTokenSet> {
+  const response = await fetch(googleTokenEndpoint, {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams(body).toString()
+  });
+  if (!response.ok) {
+    throw new ConnectionValidationError("Google token exchange failed");
+  }
+  return googleTokenSchema.parse(await response.json());
+}
+
+/** Exchanges an authorization code. Google returns a refresh token on first consent. */
+export function exchangeGoogleCode(input: {
+  clientId: string;
+  clientSecret: string;
+  redirectUri: string;
+  code: string;
+}): Promise<GoogleTokenSet> {
+  return postTokenForm({
+    client_id: input.clientId,
+    client_secret: input.clientSecret,
+    redirect_uri: input.redirectUri,
+    grant_type: "authorization_code",
+    code: input.code
+  });
+}
+
+/** Rotates an expired access token. Google may omit new refresh tokens here. */
+export function refreshGoogleToken(input: {
+  clientId: string;
+  clientSecret: string;
+  refreshToken: string;
+}): Promise<GoogleTokenSet> {
+  return postTokenForm({
+    client_id: input.clientId,
+    client_secret: input.clientSecret,
+    grant_type: "refresh_token",
+    refresh_token: input.refreshToken
+  });
 }
