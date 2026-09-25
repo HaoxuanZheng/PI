@@ -1,5 +1,5 @@
 import type { AuthUser } from "@lifegraph/auth";
-import { AIOperationDecisionError, AIOperationNotFoundError, AIOperationValidationError, FileNotFoundError, FileStateError, IdempotencyInFlightError, IdempotencyKeyError, ImportNotFoundError, ImportStateError, MergeCandidateNotFoundError, MergeCandidateStateError, MergeNotApplicableError, OnboardingStateError, PublicationNotFoundError, PublicationStateError, ObjectNotFoundError, ObjectTypeConflictError, PermissionDeniedError, PermissionNotFoundError, RelationshipNotFoundError, RelationshipValidationError, RetrievalValidationError, RevisionConflictError } from "@lifegraph/db";
+import { AIOperationDecisionError, AIOperationNotFoundError, AIOperationValidationError, ConnectionNotFoundError, FileNotFoundError, FileStateError, IdempotencyInFlightError, IdempotencyKeyError, ImportNotFoundError, ImportStateError, MergeCandidateNotFoundError, MergeCandidateStateError, MergeNotApplicableError, OnboardingStateError, PublicationNotFoundError, PublicationStateError, ObjectNotFoundError, ObjectTypeConflictError, PermissionDeniedError, PermissionNotFoundError, RelationshipNotFoundError, RelationshipValidationError, RetrievalValidationError, RevisionConflictError } from "@lifegraph/db";
 import { ImportValidationError } from "@lifegraph/imports";
 import { PublicationValidationError } from "@lifegraph/publications";
 import { ImportProviderError } from "@lifegraph/imports/google-drive";
@@ -14,6 +14,7 @@ import { ImportProviderUnavailableError } from "./imports";
 import { AccountDeletionStateError, AccountNotFoundError } from "@lifegraph/db";
 import { AnalyticsValidationError } from "@lifegraph/analytics";
 import { ExportOwnershipError, PrivacyValidationError } from "@lifegraph/privacy";
+import { ConnectionCryptoError, ConnectionValidationError } from "@lifegraph/connections";
 
 export type ApiContext = { actor: AuthUser; requestId: string };
 
@@ -115,13 +116,16 @@ export function handleApiError(error: unknown, currentRequestId: string) {
   if (error instanceof InactiveAccountError) {
     return apiError("FORBIDDEN", "The account is not active.", 403, currentRequestId);
   }
-  if (error instanceof AccountNotFoundError) {
-    return apiError("NOT_FOUND", "The account was not found.", 404, currentRequestId);
+  if (error instanceof AccountNotFoundError || error instanceof ConnectionNotFoundError) {
+    return apiError("NOT_FOUND", "The account or connection was not found.", 404, currentRequestId);
+  }
+  if (error instanceof ConnectionCryptoError) {
+    return apiError("INTERNAL_ERROR", "The request could not be completed.", 500, currentRequestId);
   }
   if (error instanceof AccountDeletionStateError) {
     return apiError("DELETION_STATE_CONFLICT", error.message, 409, currentRequestId);
   }
-  if (error instanceof PrivacyValidationError || error instanceof AnalyticsValidationError || error instanceof IdempotencyKeyError) {
+  if (error instanceof PrivacyValidationError || error instanceof AnalyticsValidationError || error instanceof IdempotencyKeyError || error instanceof ConnectionValidationError) {
     return apiError("VALIDATION_FAILED", error.message, 400, currentRequestId);
   }
   if (error instanceof IdempotencyInFlightError) {

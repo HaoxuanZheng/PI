@@ -42,6 +42,7 @@ export type PurgeSummary = {
   embeddingsPurged: number;
   filesPurged: number;
   analyticsDeleted: number;
+  connectionsPurged: number;
   purgedAt: string;
 };
 
@@ -233,6 +234,12 @@ export function createAccountRepository(client: DatabaseClient, storage: Storage
           inArray(imports.status, ["PENDING", "RUNNING"])
         )).returning({ id: imports.id });
 
+        // Stored provider tokens are identifying credentials: purge removes
+        // them while live, alongside vectors, so RETURNING stays visible.
+        const severed = await transaction.execute(
+          statement`DELETE FROM provider_connections WHERE user_id = ${ownerId}::uuid RETURNING id`
+        );
+
         const purgedAt = new Date();
         await transaction.update(users).set({ deletionPurgedAt: purgedAt, updatedAt: purgedAt })
           .where(eq(users.id, ownerId));
@@ -241,6 +248,7 @@ export function createAccountRepository(client: DatabaseClient, storage: Storage
           publicationsUnpublished: unpublished.length,
           grantsRevoked: revoked.length,
           importsFailed: failed.length,
+          connectionsPurged: severed.length,
           purgedAt
         };
       });
@@ -268,7 +276,8 @@ export function createAccountRepository(client: DatabaseClient, storage: Storage
             importCount: bulk.importsFailed,
             embeddingCount: erased.embeddingsPurged,
             fileCount: filesPurged,
-            analyticsCount: erased.analyticsDeleted
+            analyticsCount: erased.analyticsDeleted,
+            connectionCount: bulk.connectionsPurged
           }
         });
       });
@@ -281,6 +290,7 @@ export function createAccountRepository(client: DatabaseClient, storage: Storage
         embeddingsPurged: erased.embeddingsPurged,
         filesPurged,
         analyticsDeleted: erased.analyticsDeleted,
+        connectionsPurged: bulk.connectionsPurged,
         purgedAt: bulk.purgedAt.toISOString()
       };
     }

@@ -26,7 +26,10 @@ const serverSchema = publicSchema.extend({
   // V0.11 accepts a pre-obtained read-only Drive token; the OAuth consent flow is not implemented.
   GOOGLE_DRIVE_ACCESS_TOKEN: z.union([z.string().min(1), z.literal("")]).optional(),
   GOOGLE_CONTACTS_ACCESS_TOKEN: z.union([z.string().min(1), z.literal("")]).optional(),
-  NOTION_API_TOKEN: z.union([z.string().min(1), z.literal("")]).optional()
+  NOTION_API_TOKEN: z.union([z.string().min(1), z.literal("")]).optional(),
+  // Seals per-user provider tokens (AES-256-GCM, 64 hex chars). Required in
+  // production once connections exist; without it connect() refuses.
+  OAUTH_TOKEN_KEY: z.union([z.string().regex(/^[0-9a-fA-F]{64}$/), z.literal("")]).optional()
 }).superRefine((value, context) => {
   if (value.NODE_ENV === "production" && !value.SENTRY_DSN) {
     context.addIssue({ code: "custom", path: ["SENTRY_DSN"], message: "SENTRY_DSN is required in production" });

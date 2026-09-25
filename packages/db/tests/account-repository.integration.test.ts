@@ -1,10 +1,11 @@
-import { randomUUID } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { createInMemoryStorage } from "@lifegraph/storage";
 import type { AIProvider } from "@lifegraph/ai";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createDatabaseClient } from "../src/index";
 import { AccountDeletionStateError, createAccountRepository } from "../src/repositories/accounts";
+import { createConnectionRepository } from "../src/repositories/connections";
 import { createObjectRepository } from "../src/repositories/objects";
 import { createPermissionRepository } from "../src/repositories/permissions";
 import { createRelationshipRepository } from "../src/repositories/relationships";
@@ -70,6 +71,17 @@ integration("account purge", () => {
     await objects.provisionUser({ id: ownerA, username: username(ownerA), email: null });
     await objects.provisionUser({ id: ownerB, username: username(ownerB), email: null });
 
+    const previousKey = process.env.OAUTH_TOKEN_KEY;
+    process.env.OAUTH_TOKEN_KEY = randomBytes(32).toString("hex");
+    const connections = createConnectionRepository(client);
+    await connections.connect(ownerA, {
+      provider: "NOTION",
+      accessToken: "ntn_purge_me",
+      refreshToken: null,
+      scopes: [],
+      expiresInSeconds: 3600
+    });
+
     const first = await objects.create(ownerA, { snapshot: noteSnapshot("First", "alpha content"), visibility: "PRIVATE" });
     const second = await objects.create(ownerA, { snapshot: noteSnapshot("Second", "beta content"), visibility: "PRIVATE" });
     await relationships.create(ownerA, first.object.id, { targetObjectId: second.object.id, relationshipType: "MENTIONS" }, "test-edge");
@@ -117,6 +129,10 @@ integration("account purge", () => {
     expect(summary.embeddingsPurged).toBeGreaterThanOrEqual(1);
     expect(summary.filesPurged).toBe(1);
     expect(summary.analyticsDeleted).toBeGreaterThanOrEqual(1);
+    expect(summary.connectionsPurged).toBe(1);
+    expect(await connections.status(ownerA)).toHaveLength(0);
+    if (previousKey === undefined) delete process.env.OAUTH_TOKEN_KEY;
+    else process.env.OAUTH_TOKEN_KEY = previousKey;
 
     // Live reads are empty but history survives for the owner.
     expect(await objects.list(ownerA, 100)).toHaveLength(0);

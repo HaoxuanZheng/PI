@@ -47,6 +47,9 @@ importers:
       '@lifegraph/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@lifegraph/connections':
+        specifier: workspace:*
+        version: link:../../packages/connections
       '@lifegraph/db':
         specifier: workspace:*
         version: link:../../packages/db
@@ -165,6 +168,19 @@ importers:
         specifier: 5.9.2
         version: 5.9.2
 
+  packages/connections:
+    dependencies:
+      zod:
+        specifier: 4.1.5
+        version: 4.1.5
+    devDependencies:
+      typescript:
+        specifier: 5.9.2
+        version: 5.9.2
+      vitest:
+        specifier: 3.2.4
+        version: 3.2.4(@types/node@24.3.0)(supports-color@7.2.0)(tsx@4.20.5)
+
   packages/db:
     dependencies:
       '@lifegraph/ai':
@@ -176,6 +192,9 @@ importers:
       '@lifegraph/config':
         specifier: workspace:*
         version: link:../config
+      '@lifegraph/connections':
+        specifier: workspace:*
+        version: link:../connections
       '@lifegraph/domain':
         specifier: workspace:*
         version: link:../domain

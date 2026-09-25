@@ -2,7 +2,7 @@ import type { NextRequest } from "next/server";
 import { z } from "zod";
 import { apiData, handleApiError, requestId, requireApiContext } from "@/lib/api";
 import { getImportRepository } from "@/lib/db";
-import { getImportProvider } from "@/lib/imports";
+import { getImportProviderFor } from "@/lib/imports";
 
 type Context = { params: Promise<{ importId: string }> };
 
@@ -15,7 +15,7 @@ export async function POST(request: NextRequest, { params }: Context) {
     const importId = z.uuid().parse((await params).importId);
     const repository = getImportRepository();
     const run = await repository.get(ctx.actor.id, importId);
-    return apiData(await repository.runBatch(ctx.actor.id, importId, getImportProvider(run.provider), ctx.requestId), ctx.requestId);
+    return apiData(await repository.runBatch(ctx.actor.id, importId, await getImportProviderFor(ctx.actor.id, run.provider), ctx.requestId), ctx.requestId);
   } catch (error) {
     return handleApiError(error, id);
   }

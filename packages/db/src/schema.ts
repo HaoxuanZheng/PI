@@ -274,6 +274,20 @@ export const idempotencyKeys = pgTable("idempotency_keys", {
   index("idempotency_keys_expires_idx").on(table.expiresAt)
 ]);
 
+export const providerConnections = pgTable("provider_connections", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "restrict" }),
+  provider: text("provider").notNull(),
+  sealedAccessToken: jsonb("sealed_access_token").$type<{ iv: string; data: string; tag: string }>().notNull(),
+  sealedRefreshToken: jsonb("sealed_refresh_token").$type<{ iv: string; data: string; tag: string } | null>(),
+  scopes: text("scopes").array().notNull().default([]),
+  expiresAt: timestamp("expires_at", { withTimezone: true, mode: "date" }),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull().defaultNow()
+}, (table) => [
+  uniqueIndex("provider_connections_user_provider_uidx").on(table.userId, table.provider)
+]);
+
 export type UserRow = typeof users.$inferSelect;
 export type ObjectRow = typeof objects.$inferSelect;
 export type ObjectRevisionRow = typeof objectRevisions.$inferSelect;
