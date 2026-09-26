@@ -37,9 +37,10 @@ const serverSchema = publicSchema.extend({
   GOOGLE_OAUTH_CLIENT_ID: z.union([z.string().min(1), z.literal("")]).optional(),
   GOOGLE_OAUTH_CLIENT_SECRET: z.union([z.string().min(1), z.literal("")]).optional()
 }).superRefine((value, context) => {
-  if (value.NODE_ENV === "production" && !value.SENTRY_DSN) {
-    context.addIssue({ code: "custom", path: ["SENTRY_DSN"], message: "SENTRY_DSN is required in production" });
-  }
+  // No error-tracking SDK consumes SENTRY_DSN yet, so production runs without
+  // one by explicit decision (launch checklist); platform log streams carry
+  // the structured failure lines instead. Reintroduce this gate if a DSN-backed
+  // reporter is ever wired in.
   if (value.NODE_ENV === "production" && !value.SUPABASE_SERVICE_ROLE_KEY) {
     context.addIssue({ code: "custom", path: ["SUPABASE_SERVICE_ROLE_KEY"], message: "SUPABASE_SERVICE_ROLE_KEY is required in production" });
   }

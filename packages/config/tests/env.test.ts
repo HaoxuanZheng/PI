@@ -23,12 +23,15 @@ describe("environment validation", () => {
     expect("DATABASE_URL" in result).toBe(false);
   });
 
-  it("requires error tracking in production", () => {
-    expect(() => parseServerEnv({
+  it("runs production without error tracking by explicit decision", () => {
+    // No SDK consumes SENTRY_DSN yet; the launch checklist records platform
+    // log streams as the accepted alpha posture instead of a hard gate.
+    expect(parseServerEnv({
       ...publicEnv,
       DATABASE_URL: "postgresql://localhost/lifegraph",
-      NODE_ENV: "production"
-    })).toThrow();
+      NODE_ENV: "production",
+      SUPABASE_SERVICE_ROLE_KEY: "service-role"
+    })).toMatchObject({ NODE_ENV: "production" });
   });
 
   it("defaults file storage to a private bucket with scanning enforced", () => {
