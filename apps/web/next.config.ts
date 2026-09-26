@@ -1,7 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: "standalone",
+  // Standalone output is for self-hosted Docker/Node deployments only
+  // (STANDALONE=1). Vercel manages its own output tracing, and forcing
+  // standalone there breaks the build collection step (missing
+  // next-server.js.nft.json).
+  ...(process.env.STANDALONE === "1" ? { output: "standalone" as const } : {}),
   poweredByHeader: false,
   reactStrictMode: true,
   transpilePackages: ["@lifegraph/auth", "@lifegraph/analytics", "@lifegraph/config", "@lifegraph/db", "@lifegraph/domain", "@lifegraph/permissions", "@lifegraph/privacy", "@lifegraph/ratelimit"],

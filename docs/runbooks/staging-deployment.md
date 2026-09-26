@@ -24,7 +24,7 @@ Deploy the web application to a Node.js-compatible platform and connect it to an
 3. Store environment values in the deployment platform; do not commit them.
 4. Run `pnpm install --frozen-lockfile` and `pnpm check` in CI.
 5. Apply migrations using a one-off release command: `pnpm db:migrate`.
-6. Deploy `apps/web` using `pnpm build` followed by `pnpm --filter @lifegraph/web start`.
+6. Deploy `apps/web` using `pnpm build` followed by `pnpm --filter @lifegraph/web start`. For self-hosted Docker/Node targets build with `STANDALONE=1` to emit the standalone output; leave it unset on Vercel, which manages its own output tracing.
 7. Verify `/api/health` returns HTTP 200 and perform sign-up, confirmation, sign-in, protected-route, and sign-out smoke tests.
 8. Verify `/api/ready` returns HTTP 200 (database-backed). Point load balancer and container probes at `/api/ready`, never at `/api/health` alone: health is liveness without secrets or database access, readiness fails traffic routing on database outage.
 
