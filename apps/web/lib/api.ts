@@ -15,6 +15,7 @@ import { AccountDeletionStateError, AccountNotFoundError } from "@lifegraph/db";
 import { AnalyticsValidationError } from "@lifegraph/analytics";
 import { ExportOwnershipError, PrivacyValidationError } from "@lifegraph/privacy";
 import { ConnectionCryptoError, ConnectionValidationError } from "@lifegraph/connections";
+import { AIProviderNotConfiguredError } from "./ai";
 
 export type ApiContext = { actor: AuthUser; requestId: string };
 
@@ -104,6 +105,9 @@ export async function parseJson<T>(request: NextRequest, schema: ZodType<T>) {
 }
 
 export function handleApiError(error: unknown, currentRequestId: string) {
+  if (error instanceof AIProviderNotConfiguredError) {
+    return apiError("AI_PROVIDER_NOT_CONFIGURED", error.message, 503, currentRequestId);
+  }
   if (error instanceof RateLimitedError) {
     return apiError("RATE_LIMITED", error.message, 429, currentRequestId, undefined, rateLimitHeaders(error));
   }

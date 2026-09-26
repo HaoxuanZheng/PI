@@ -59,6 +59,8 @@ Database-backed integration tests run when `TEST_DATABASE_URL` points to a dispo
 
 Browser code may only access `NEXT_PUBLIC_*` variables. `DATABASE_URL` and future service-role credentials are server-only. Production startup fails when required configuration is absent. Tests should inject explicit environment objects rather than mutate process-wide secrets.
 
+Authenticated users configure an OpenAI-compatible AI endpoint under `/settings`. API keys are AES-256-GCM encrypted with the server-only `OAUTH_TOKEN_KEY`, are never returned to the browser, and override the optional operator-level `AI_*` fallback for that user.
+
 ## Object + Revision invariants
 
 - Authenticated identities are provisioned into the `users` domain boundary on first use.

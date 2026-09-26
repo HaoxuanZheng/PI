@@ -298,6 +298,16 @@ export const oauthStates = pgTable("oauth_states", {
   index("oauth_states_expires_idx").on(table.expiresAt)
 ]);
 
+export const aiProviderSettings = pgTable("ai_provider_settings", {
+  userId: uuid("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
+  sealedApiKey: jsonb("sealed_api_key").$type<{ iv: string; data: string; tag: string }>().notNull(),
+  baseUrl: text("base_url").notNull(),
+  chatModel: text("chat_model").notNull(),
+  embeddingModel: text("embedding_model").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull().defaultNow()
+});
+
 export type UserRow = typeof users.$inferSelect;
 export type ObjectRow = typeof objects.$inferSelect;
 export type ObjectRevisionRow = typeof objectRevisions.$inferSelect;

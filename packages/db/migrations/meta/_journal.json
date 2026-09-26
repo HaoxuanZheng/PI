@@ -127,6 +127,13 @@
       "when": 1787995800000,
       "tag": "0017_oauth_states",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1790386800000,
+      "tag": "0018_ai_provider_settings",
+      "breakpoints": true
     }
   ]
 }

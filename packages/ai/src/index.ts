@@ -83,7 +83,8 @@ export function getPrompt(name: string, version: string) {
 
 export class OpenAICompatibleProvider implements AIProvider {
   readonly name: string;
-  constructor(readonly model: string, private readonly apiKey: string, private readonly baseUrl = "https://api.openai.com/v1", name = "openai") { this.name = name; }
+  constructor(readonly model: string, private readonly apiKey: string, baseUrl = "https://api.openai.com/v1", name = "openai") { this.name = name; this.baseUrl = baseUrl.replace(/\/+$/, ""); }
+  private readonly baseUrl: string;
   async generateStructured<T>(request: StructuredRequest<T>): Promise<T> {
     const response = await fetch(`${this.baseUrl}/chat/completions`, { method: "POST", headers: { authorization: `Bearer ${this.apiKey}`, "content-type": "application/json" }, body: JSON.stringify({ model: this.model, response_format: { type: "json_object" }, messages: [{ role: "system", content: request.system }, { role: "user", content: request.input }] }) });
     if (!response.ok) throw new Error(`AI provider failed with status ${response.status}`);
