@@ -37,6 +37,7 @@ export default async function AuthPage({ searchParams }: AuthPageProps) {
           <div className="field">
             <label htmlFor="password">Password</label>
             <input autoComplete={isSignUp ? "new-password" : "current-password"} id="password" minLength={8} name="password" required type="password" />
+            {!isSignUp ? <Link className="back" href="/auth/forgot-password">Forgot password?</Link> : null}
           </div>
           <div className="formActions">
             <button className="button" type="submit">{isSignUp ? "Create account" : "Sign in"}</button>

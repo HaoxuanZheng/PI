@@ -36,6 +36,29 @@ export async function signUp(formData: FormData) {
   redirect(result.requiresEmailConfirmation ? "/auth?notice=check-email" : "/library");
 }
 
+export async function requestPasswordReset(formData: FormData) {
+  const email = z.email().safeParse(formData.get("email"));
+  if (!email.success) redirect("/auth/forgot-password?error=invalid-input");
+
+  const auth = await getAuthService();
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
+  if (!appUrl) redirect("/auth/forgot-password?error=reset");
+  const result = await auth.requestPasswordReset(email.data, `${appUrl}/auth/recover`);
+  if (!result.ok) redirect("/auth/forgot-password?error=reset");
+  redirect("/auth/forgot-password?notice=check-email");
+}
+
+export async function updatePassword(formData: FormData) {
+  const password = z.string().min(8).max(128).safeParse(formData.get("password"));
+  if (!password.success) redirect("/auth/reset-password?error=invalid-input");
+
+  const auth = await getAuthService();
+  if (!await auth.currentUser()) redirect("/auth?error=invalid-confirmation");
+  const result = await auth.updatePassword(password.data);
+  if (!result.ok) redirect("/auth/reset-password?error=reset");
+  redirect("/library");
+}
+
 export async function signOut() {
   const auth = await getAuthService();
   await auth.signOut();

@@ -11,8 +11,10 @@ export interface AuthService {
   currentUser(): Promise<AuthUser | null>;
   signInWithPassword(email: string, password: string): Promise<AuthResult>;
   signUpWithPassword(email: string, password: string): Promise<AuthResult>;
+  requestPasswordReset(email: string, redirectTo: string): Promise<AuthResult>;
   confirmEmail(tokenHash: string, type: EmailOtpType): Promise<AuthResult>;
   exchangeConfirmationCode(code: string): Promise<AuthResult>;
+  updatePassword(password: string): Promise<AuthResult>;
   signOut(): Promise<void>;
 }
 
@@ -82,6 +84,11 @@ export async function createSupabaseAuthService(config: SupabaseAuthConfig): Pro
         requiresEmailConfirmation: data.session === null
       };
     },
+    async requestPasswordReset(email, redirectTo) {
+      const { error } = await client.auth.resetPasswordForEmail(email, { redirectTo });
+      if (error) return { ok: false, code: "PROVIDER_ERROR", message: "Unable to request a password reset." };
+      return { ok: true, user: null };
+    },
     async confirmEmail(tokenHash, type) {
       const { data, error } = await client.auth.verifyOtp({ token_hash: tokenHash, type });
       if (error) return { ok: false, code: "PROVIDER_ERROR", message: "Unable to confirm the account." };
@@ -90,6 +97,11 @@ export async function createSupabaseAuthService(config: SupabaseAuthConfig): Pro
     async exchangeConfirmationCode(code) {
       const { data, error } = await client.auth.exchangeCodeForSession(code);
       if (error) return { ok: false, code: "PROVIDER_ERROR", message: "Unable to confirm the account." };
+      return { ok: true, user: normalizeUser(data.user) };
+    },
+    async updatePassword(password) {
+      const { data, error } = await client.auth.updateUser({ password });
+      if (error) return { ok: false, code: "PROVIDER_ERROR", message: "Unable to update the password." };
       return { ok: true, user: normalizeUser(data.user) };
     },
     async signOut() {

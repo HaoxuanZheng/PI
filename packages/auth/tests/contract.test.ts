@@ -19,8 +19,10 @@ describe("AuthService contract", () => {
         user: { id: "user-1", email: "person@example.com" },
         requiresEmailConfirmation: true
       }),
+      requestPasswordReset: async () => ({ ok: true, user: null }),
       confirmEmail: async () => ({ ok: true, user: { id: "user-1", email: "person@example.com" } }),
       exchangeConfirmationCode: async () => ({ ok: true, user: { id: "user-1", email: "person@example.com" } }),
+      updatePassword: async () => ({ ok: true, user: { id: "user-1", email: "person@example.com" } }),
       signOut: async () => undefined
     };
 
