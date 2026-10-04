@@ -16,9 +16,14 @@ export default async function ForgotPasswordPage({ searchParams }: ForgotPasswor
         <h1 id="auth-title">Reset your password.</h1>
         <p className="muted">Enter your account email and PI will send a secure recovery link.</p>
         {query.notice === "check-email" ? (
-          <p className="notice" role="status">If an account exists for that email, a recovery link has been sent. Check your spam folder too.</p>
+          <p className="notice" role="status">If an account exists for that email, a recovery link has been sent. Use only the newest email and do not request another link first.</p>
         ) : null}
-        {query.error ? <p className="notice error" role="alert">We could not send a recovery link. Please try again.</p> : null}
+        {query.notice === "recently-sent" ? (
+          <p className="notice" role="status">A recovery link was already requested. Use the newest email or wait five minutes before requesting another.</p>
+        ) : null}
+        {query.error === "expired" ? (
+          <p className="notice error" role="alert">That recovery link is expired or was replaced by a newer request. Wait five minutes, request one new link, and open only the newest email in this browser.</p>
+        ) : query.error ? <p className="notice error" role="alert">We could not send a recovery link. Please try again.</p> : null}
         <form action={requestPasswordReset}>
           <div className="field">
             <label htmlFor="email">Email</label>

@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { z } from "zod";
 import { getAuthService } from "@/lib/auth";
 
@@ -40,11 +41,24 @@ export async function requestPasswordReset(formData: FormData) {
   const email = z.email().safeParse(formData.get("email"));
   if (!email.success) redirect("/auth/forgot-password?error=invalid-input");
 
+  const cookieJar = await cookies();
+  const lastRequest = Number(cookieJar.get("pi-recovery-sent-at")?.value ?? 0);
+  if (Number.isFinite(lastRequest) && Date.now() - lastRequest < 5 * 60_000) {
+    redirect("/auth/forgot-password?notice=recently-sent");
+  }
+
   const auth = await getAuthService();
   const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
   if (!appUrl) redirect("/auth/forgot-password?error=reset");
   const result = await auth.requestPasswordReset(email.data, `${appUrl}/auth/recover`);
   if (!result.ok) redirect("/auth/forgot-password?error=reset");
+  cookieJar.set("pi-recovery-sent-at", String(Date.now()), {
+    httpOnly: true,
+    maxAge: 5 * 60,
+    path: "/auth",
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production"
+  });
   redirect("/auth/forgot-password?notice=check-email");
 }
 
