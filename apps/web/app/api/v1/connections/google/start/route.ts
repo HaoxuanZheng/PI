@@ -13,7 +13,7 @@ function googleRedirectUri(request: NextRequest) {
 /**
  * Starts Google OAuth consent for read-only Drive or Contacts scopes.
  * Creates a single-use state bound to the caller, then redirects out to
- * Google. Consent itself happens on Google's pages; LifeGraph never sees
+ * Google. Consent itself happens on Google's pages; PI never sees
  * the user's Google password.
  */
 export async function GET(request: NextRequest) {

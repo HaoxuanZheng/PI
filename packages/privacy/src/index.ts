@@ -127,7 +127,7 @@ function escapeMarkdown(value: string) {
 /** A human-readable companion to the JSON bundle, not a lossless format. */
 export function renderMarkdownExport(bundle: ExportBundle) {
   const lines = [
-    `# LifeGraph export for @${bundle.user.username}`,
+    `# PI export for @${bundle.user.username}`,
     "",
     `Exported at: ${bundle.exportedAt}`,
     `Bundle version: ${bundle.bundleVersion}`,

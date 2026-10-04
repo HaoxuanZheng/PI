@@ -9,7 +9,7 @@ The MVP requires three importers in priority order — Google Drive, Notion, Goo
 source twice must create zero duplicate authoritative objects, a failed import must resume, and
 imported content must be private.
 
-Imports are the first subsystem where LifeGraph writes authoritative objects from data it did not
+Imports are the first subsystem where PI writes authoritative objects from data it did not
 author. That creates two risks the manual path does not have: duplicate objects on every re-sync, and
 provider data leaking into public projections.
 

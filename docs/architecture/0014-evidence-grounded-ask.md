@@ -1,4 +1,4 @@
-# ADR 0014: Ask My Life is an evidence pipeline, not a chatbot
+# ADR 0014: Ask PI is an evidence pipeline, not a chatbot
 
 - Status: Accepted
 

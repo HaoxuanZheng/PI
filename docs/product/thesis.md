@@ -1,6 +1,6 @@
 # Product Thesis
 
-LifeGraph is a private-by-default Personal Internet: one person owns one durable Personal Graph that can drive many contextual views without duplicating or drifting facts.
+PI is a private-by-default Personal Internet: one person owns one durable Personal Graph that can drive many contextual views without duplicating or drifting facts.
 
 The MVP must prove that a user can bring scattered information into one place, maintain it more easily with reviewable AI proposals, retrieve it later with trustworthy evidence, and deliberately publish selected information as a living identity.
 
@@ -16,4 +16,4 @@ The MVP must prove that a user can bring scattered information into one place, m
 
 ## MVP boundary
 
-Build accounts, personal objects, editing and revisions, graph/search, capture, three prioritized importers, Inline AI, Ask My Life with evidence, Living Identity, URL/QR sharing, and security controls. Defer social feeds, ratings, event commerce, ambient capture, biometrics, autonomous networking/publishing, native apps, and full replacements for LinkedIn or Notion.
+Build accounts, personal objects, editing and revisions, graph/search, capture, three prioritized importers, Inline AI, Ask PI with evidence, Living Identity, URL/QR sharing, and security controls. Defer social feeds, ratings, event commerce, ambient capture, biometrics, autonomous networking/publishing, native apps, and full replacements for LinkedIn or Notion.

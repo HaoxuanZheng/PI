@@ -17,7 +17,7 @@ export function GET(request: NextRequest) {
   const configured = checks.databaseUrl && checks.supabaseUrl && checks.supabaseAnonKey;
 
   return NextResponse.json(
-    { status: configured ? "ready" : "configuration_required", service: "lifegraph-web", checks },
+    { status: configured ? "ready" : "configuration_required", service: "pi-web", checks },
     { status: configured ? 200 : 503 }
   );
 }

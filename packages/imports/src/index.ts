@@ -8,7 +8,7 @@ export const importProviderSchema = z.enum(["GOOGLE_DRIVE", "NOTION", "GOOGLE_CO
 export const importStatusSchema = z.enum(["PENDING", "RUNNING", "COMPLETED", "FAILED"]);
 
 /**
- * One external record, already mapped onto a LifeGraph snapshot. `contentHash` is what makes an
+ * One external record, already mapped onto a PI snapshot. `contentHash` is what makes an
  * import idempotent: re-importing an unchanged source produces the same hash and is skipped.
  */
 export const normalizedImportItemSchema = z.object({

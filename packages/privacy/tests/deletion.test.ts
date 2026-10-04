@@ -62,6 +62,6 @@ describe("export ownership guard", () => {
     const bundle = bundleWith("user-1", "user-1");
     expect(assertBundleOwnership(bundle, "user-1").bundleVersion).toBe(exportBundleVersion);
     expect(exportCollections).toContain("objects");
-    expect(renderMarkdownExport(bundle)).toContain("LifeGraph export");
+    expect(renderMarkdownExport(bundle)).toContain("PI export");
   });
 });

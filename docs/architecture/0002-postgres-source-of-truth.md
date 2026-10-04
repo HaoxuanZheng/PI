@@ -5,7 +5,7 @@
 
 ## Context
 
-LifeGraph needs transactions across objects, revisions, edges, permissions, publications, and audit records. Those records must remain portable and queryable.
+PI needs transactions across objects, revisions, edges, permissions, publications, and audit records. Those records must remain portable and queryable.
 
 ## Decision
 

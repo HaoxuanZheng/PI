@@ -1,4 +1,4 @@
-# Ask My Life V0.9
+# Ask PI V0.9
 
 Apply all migrations through V0.8, configure the chat and embedding models, and index test objects. Open `/ask` or call `POST /api/v1/ask` with `{ "question": "..." }`. Confirm supported answers link to readable Library objects and exact revision IDs. Remove evidence or ask about two similarly named Person objects to verify abstention and disambiguation.
 

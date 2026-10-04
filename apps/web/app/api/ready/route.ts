@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
   };
   if (!checks.databaseUrl) {
     return NextResponse.json(
-      { status: "not_ready", service: "lifegraph-web", checks },
+      { status: "not_ready", service: "pi-web", checks },
       { status: 503, headers: { "x-request-id": currentRequestId } }
     );
   }
@@ -34,12 +34,12 @@ export async function GET(request: NextRequest) {
     checks.database = true;
   } catch {
     return NextResponse.json(
-      { status: "not_ready", service: "lifegraph-web", checks },
+      { status: "not_ready", service: "pi-web", checks },
       { status: 503, headers: { "x-request-id": currentRequestId } }
     );
   }
   return NextResponse.json(
-    { status: "ready", service: "lifegraph-web", checks },
+    { status: "ready", service: "pi-web", checks },
     { status: 200, headers: { "x-request-id": currentRequestId } }
   );
 }

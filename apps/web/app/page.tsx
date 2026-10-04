@@ -11,7 +11,7 @@ export default function HomePage() {
   return (
     <main>
       <nav className="nav" aria-label="Primary navigation">
-        <Link className="brand" href="/">LifeGraph</Link>
+        <Link className="brand" href="/">PI</Link>
         <Link className="button buttonSecondary" href="/auth">Sign in</Link>
       </nav>
 
@@ -19,7 +19,7 @@ export default function HomePage() {
         <p className="eyebrow">AI Infrastructure milestone · v0.6</p>
         <h1>Your life is connected.<br />Your tools should be too.</h1>
         <p className="lede">
-          LifeGraph is a private Personal Internet: one place to capture what matters,
+          PI is your private personal intelligence: one place to capture what matters,
           connect it over time, and deliberately shape what the world can see.
         </p>
         <div className="actions">

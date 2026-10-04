@@ -3,8 +3,8 @@ import type { ReactNode } from "react";
 import "./styles.css";
 
 export const metadata: Metadata = {
-  title: "LifeGraph",
-  description: "Your private, durable Personal Internet."
+  title: "PI",
+  description: "Your private, durable PI."
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {

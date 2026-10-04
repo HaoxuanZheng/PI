@@ -1,6 +1,6 @@
 # PERSONAL INTERNET / PERSONAL CONTEXT NETWORK
 ## Codex-Ready Technical Specification & Development Plan
-**Working codename:** LifeGraph  
+**Working codename:** PI
 **Document version:** 0.1  
 **Launch assumption:** New York, United States  
 **Primary implementation target:** Web-first MVP, mobile-ready architecture  
@@ -322,7 +322,7 @@ Priority order:
 - Extract people
 - Extract tasks / follow-ups
 - Propose relationships
-- Ask My Life
+- Ask PI
 - Evidence references
 
 ### Living Identity
@@ -466,7 +466,7 @@ Accept creates new revision
 
 ---
 
-## 5.4 Ask My Life
+## 5.4 Ask PI
 
 Example:
 
@@ -1422,7 +1422,7 @@ This enables:
 
 # 17. ASK MY LIFE ARCHITECTURE
 
-Do not treat Ask My Life as a generic chatbot.
+Do not treat Ask PI as a generic chatbot.
 
 Pipeline:
 
@@ -2267,7 +2267,7 @@ Categories:
 - date extraction
 - no duplicate hallucination
 
-## Ask My Life
+## Ask PI
 - correct answer
 - correct source
 - appropriate abstention
@@ -2360,14 +2360,14 @@ AND
 has experienced:
   >= 3 useful AI-generated connections/suggestions
 OR
-  >= 1 successful Ask My Life answer
+  >= 1 successful Ask PI answer
 ```
 
 Targets to investigate:
 
 - >60% activated users reaching 10+ objects
 - >40% Inline AI proposal acceptance
-- >70% rated-successful Ask My Life answers
+- >70% rated-successful Ask PI answers
 - >30% activated D7 retention
 - >15% activated D30 retention
 - >20% publishing at least one public object
@@ -2418,7 +2418,7 @@ Before beta:
 - restore revision
 - publish project
 - anonymous public view
-- Ask My Life
+- Ask PI
 - delete object
 
 ## Security tests
@@ -2590,7 +2590,7 @@ Create Note
 → AI proposes extracted project
 → user accepts
 → graph link created
-→ Ask My Life can retrieve it
+→ Ask PI can retrieve it
 ```
 
 That is more valuable than building 40 disconnected backend endpoints.
@@ -2721,7 +2721,7 @@ Acceptance:
 
 ---
 
-## Week 8 — Ask My Life
+## Week 8 — Ask PI
 
 Build:
 - query classifier
@@ -3000,7 +3000,7 @@ Suggested exit requirements:
 - >=20 serious alpha users
 - >=10 use product weekly for 4 consecutive weeks
 - >=40% Inline AI acceptance
-- Ask My Life useful rating >=70% on rated queries
+- Ask PI useful rating >=70% on rated queries
 - no known Critical security issue
 - no known private/public leakage
 - deletion pipeline tested
@@ -3034,7 +3034,7 @@ Core Personal Graph MVP:
 - revisions
 - graph
 - Inline AI
-- Ask My Life
+- Ask PI
 - first import
 
 ## Months 4–5
@@ -3206,7 +3206,7 @@ Core non-negotiable architecture:
    - revision concurrency
 8. User Accept/Reject/Edit is required for authoritative AI modifications.
 9. Every accepted AI modification creates an immutable revision.
-10. Ask My Life retrieval is permission-scoped before AI context construction.
+10. Ask PI retrieval is permission-scoped before AI context construction.
 11. Deleted objects must be removed from active retrieval and derived indexes.
 12. Do not create microservices unless specifically approved.
 13. Do not add out-of-scope social, event, ranking, biometric, wearable, or ambient-recording features.
@@ -3310,7 +3310,7 @@ Core product:
 - capture/import
 - Personal Graph
 - Inline AI
-- Ask My Life
+- Ask PI
 - Living Identity
 - Professional View
 - contextual QR/NFC sharing
@@ -3574,7 +3574,7 @@ Simplify UI before expanding AI.
 
 ---
 
-## Gate B — After Ask My Life
+## Gate B — After Ask PI
 
 Question:
 Can users reliably retrieve useful personal context?
@@ -3597,7 +3597,7 @@ Does bringing existing data create immediate value?
 Continue if:
 - onboarding time decreases
 - activation increases
-- imported data leads to successful Ask My Life / AI connections
+- imported data leads to successful Ask PI / AI connections
 
 If imports create noise:
 Improve normalization and selective import.
@@ -3626,7 +3626,7 @@ Reconsider strategy if after multiple iterations:
 - users do not experience recurring fragmentation pain
 - users prefer existing source apps instead of importing
 - Inline AI feels no better than chatbot workflow
-- Ask My Life lacks sufficient trust
+- Ask PI lacks sufficient trust
 - users refuse to store meaningful information due to privacy concerns
 - activation requires too much manual organization
 - D30 retention remains weak among activated design partners
@@ -3704,8 +3704,8 @@ P0-017 Inline AI accept/reject
 P0-018 Revision conflict handling
 P0-019 Embedding pipeline
 P0-020 Hybrid retrieval
-P0-021 Ask My Life
-P0-022 Ask My Life citations
+P0-021 Ask PI
+P0-022 Ask PI citations
 P0-023 Import framework
 P0-024 Google Drive importer
 P0-025 Notion importer
@@ -3771,7 +3771,7 @@ Do not build:
 - event system
 - ratings
 - imports
-- Ask My Life
+- Ask PI
 - Inline AI
 
 yet.

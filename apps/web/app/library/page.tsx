@@ -20,7 +20,7 @@ export default async function LibraryPage() {
       <p className="eyebrow">Authenticated foundation</p>
       <h1>Your private library</h1>
       <p className="muted">Signed in as {user.email ?? "an authenticated user"}.</p>
-      <Link className="button askLink" href="/ask">✦ Ask My Life</Link>
+      <Link className="button askLink" href="/ask">✦ Ask PI</Link>
       <Link className="button buttonSecondary" href="/settings">AI settings</Link>
       <OnboardingChecklist status={onboarding} />
       <section className="libraryGrid">

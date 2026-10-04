@@ -1,8 +1,8 @@
-# LifeGraph
+# PI
 
-LifeGraph is a private-by-default Personal Internet: one user-owned source of truth that can power a private library, trusted AI assistance, and explicitly authorized public views.
+PI is a private-by-default personal intelligence platform: one user-owned source of truth that can power a private library, trusted AI assistance, and explicitly authorized public views.
 
-This repository contains the **Foundation**, **Object + Revision Core**, **Permission Engine**, **Editor**, **Graph**, **AI Infrastructure**, **Inline AI**, **Embeddings + Retrieval**, **Ask My Life**, **Capture + Files**, the **Import Framework**, **Entity Resolution + Contacts**, the **Notion importer**, **Living Identity**, and **Alpha hardening** milestones (V0.15 rate limiting, V0.16 deletion pipeline, V0.17 account export, V0.18 onboarding and analytics, V0.19 monitoring and security, V0.20 account purge execution, V0.21 launch readiness, V0.22 idempotency keys, V0.23 provider connection vault, V0.24 Google OAuth consent).
+This repository contains the **Foundation**, **Object + Revision Core**, **Permission Engine**, **Editor**, **Graph**, **AI Infrastructure**, **Inline AI**, **Embeddings + Retrieval**, **Ask PI**, **Capture + Files**, the **Import Framework**, **Entity Resolution + Contacts**, the **Notion importer**, **Living Identity**, and **Alpha hardening** milestones (V0.15 rate limiting, V0.16 deletion pipeline, V0.17 account export, V0.18 onboarding and analytics, V0.19 monitoring and security, V0.20 account purge execution, V0.21 launch readiness, V0.22 idempotency keys, V0.23 provider connection vault, V0.24 Google OAuth consent).
 
 ## Requirements
 
@@ -113,7 +113,7 @@ See `docs/runbooks/graph-api.md` for the relationship API.
 - Proposal metadata is immutable and private to the creating user under RLS.
 - V0.7 exposes only server-generated proposal, Accept, and Reject endpoints. AI still cannot write canonical objects without an explicit user Accept.
 - V0.8 adds permission-first, revision-bound hybrid retrieval over reproducible embedding chunks.
-- V0.9 adds evidence-grounded Ask My Life with classification, citations, abstention, and person disambiguation.
+- V0.9 adds evidence-grounded Ask PI with classification, citations, abstention, and person disambiguation.
 
 See `docs/runbooks/ai-infrastructure.md` for adapter and operation rules.
 

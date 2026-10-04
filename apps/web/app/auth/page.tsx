@@ -19,7 +19,7 @@ export default async function AuthPage({ searchParams }: AuthPageProps) {
   return (
     <main className="authShell">
       <section className="authCard" aria-labelledby="auth-title">
-        <Link className="back" href="/">← LifeGraph</Link>
+        <Link className="back" href="/">← PI</Link>
         <p className="eyebrow">Private by default</p>
         <h1 id="auth-title">{isSignUp ? "Create your space." : "Welcome back."}</h1>
         <p className="muted">Your account is the boundary around your future Personal Graph.</p>
