@@ -9,6 +9,7 @@ export async function getAuthService(): Promise<AuthService> {
   return createSupabaseAuthService({
     url: env.NEXT_PUBLIC_SUPABASE_URL,
     anonKey: env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    emailRedirectTo: `${env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "")}/auth/confirm`,
     cookies: {
       getAll: () => cookieJar.getAll().map(({ name, value }) => ({ name, value })),
       setAll: (values) => {

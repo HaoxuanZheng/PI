@@ -4,7 +4,7 @@ export type AuthUser = {
 };
 
 export type AuthResult =
-  | { ok: true; user: AuthUser | null }
+  | { ok: true; user: AuthUser | null; requiresEmailConfirmation?: boolean }
   | { ok: false; code: "INVALID_CREDENTIALS" | "PROVIDER_ERROR"; message: string };
 
 export interface AuthService {
@@ -12,6 +12,7 @@ export interface AuthService {
   signInWithPassword(email: string, password: string): Promise<AuthResult>;
   signUpWithPassword(email: string, password: string): Promise<AuthResult>;
   confirmEmail(tokenHash: string, type: EmailOtpType): Promise<AuthResult>;
+  exchangeConfirmationCode(code: string): Promise<AuthResult>;
   signOut(): Promise<void>;
 }
 
@@ -35,6 +36,7 @@ export type CookieStore = {
 export type SupabaseAuthConfig = {
   url: string;
   anonKey: string;
+  emailRedirectTo?: string;
   cookies: CookieStore;
 };
 
@@ -68,12 +70,25 @@ export async function createSupabaseAuthService(config: SupabaseAuthConfig): Pro
       return { ok: true, user: normalizeUser(data.user) };
     },
     async signUpWithPassword(email, password) {
-      const { data, error } = await client.auth.signUp({ email, password });
+      const { data, error } = await client.auth.signUp({
+        email,
+        password,
+        ...(config.emailRedirectTo ? { options: { emailRedirectTo: config.emailRedirectTo } } : {})
+      });
       if (error) return { ok: false, code: "PROVIDER_ERROR", message: "Unable to create the account." };
-      return { ok: true, user: normalizeUser(data.user) };
+      return {
+        ok: true,
+        user: normalizeUser(data.user),
+        requiresEmailConfirmation: data.session === null
+      };
     },
     async confirmEmail(tokenHash, type) {
       const { data, error } = await client.auth.verifyOtp({ token_hash: tokenHash, type });
+      if (error) return { ok: false, code: "PROVIDER_ERROR", message: "Unable to confirm the account." };
+      return { ok: true, user: normalizeUser(data.user) };
+    },
+    async exchangeConfirmationCode(code) {
+      const { data, error } = await client.auth.exchangeCodeForSession(code);
       if (error) return { ok: false, code: "PROVIDER_ERROR", message: "Unable to confirm the account." };
       return { ok: true, user: normalizeUser(data.user) };
     },

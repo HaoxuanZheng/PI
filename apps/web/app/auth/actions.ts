@@ -33,7 +33,7 @@ export async function signUp(formData: FormData) {
   const auth = await getAuthService();
   const result = await auth.signUpWithPassword(parsed.data.email, parsed.data.password);
   if (!result.ok) redirect("/auth?mode=signup&error=sign-up");
-  redirect(result.user ? "/library" : "/auth?notice=check-email");
+  redirect(result.requiresEmailConfirmation ? "/auth?notice=check-email" : "/library");
 }
 
 export async function signOut() {

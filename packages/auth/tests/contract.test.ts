@@ -14,8 +14,13 @@ describe("AuthService contract", () => {
     const service: AuthService = {
       currentUser: async () => null,
       signInWithPassword: async () => ({ ok: true, user: { id: "user-1", email: "person@example.com" } }),
-      signUpWithPassword: async () => ({ ok: true, user: { id: "user-1", email: "person@example.com" } }),
+      signUpWithPassword: async () => ({
+        ok: true,
+        user: { id: "user-1", email: "person@example.com" },
+        requiresEmailConfirmation: true
+      }),
       confirmEmail: async () => ({ ok: true, user: { id: "user-1", email: "person@example.com" } }),
+      exchangeConfirmationCode: async () => ({ ok: true, user: { id: "user-1", email: "person@example.com" } }),
       signOut: async () => undefined
     };
 
@@ -23,5 +28,6 @@ describe("AuthService contract", () => {
     expect(currentUser).toBeNull();
     expect(signIn.ok).toBe(true);
     expect(signUp.ok).toBe(true);
+    expect(signUp.ok && signUp.requiresEmailConfirmation).toBe(true);
   });
 });

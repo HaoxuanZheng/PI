@@ -23,7 +23,11 @@ export default async function AuthPage({ searchParams }: AuthPageProps) {
         <p className="eyebrow">Private by default</p>
         <h1 id="auth-title">{isSignUp ? "Create your space." : "Welcome back."}</h1>
         <p className="muted">Your account is the boundary around your future Personal Graph.</p>
-        {query.notice === "check-email" ? <p className="notice">Check your email to confirm your account.</p> : null}
+        {query.notice === "check-email" ? (
+          <p className="notice" role="status">
+            Check your email and open the confirmation link before signing in. If it is not in your inbox, check your spam folder.
+          </p>
+        ) : null}
         {query.error ? <p className="notice error" role="alert">{errorMessages[query.error] ?? "Something went wrong."}</p> : null}
         <form action={isSignUp ? signUp : signIn}>
           <div className="field">
