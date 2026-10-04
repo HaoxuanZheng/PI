@@ -23,6 +23,8 @@ export default async function ForgotPasswordPage({ searchParams }: ForgotPasswor
         ) : null}
         {query.error === "expired" ? (
           <p className="notice error" role="alert">That recovery link is expired or was replaced by a newer request. Wait five minutes, request one new link, and open only the newest email in this browser.</p>
+        ) : query.error === "rate-limit" ? (
+          <p className="notice error" role="alert">The email service has reached its sending limit. Do not retry yet; wait until the hourly limit resets, then request one link.</p>
         ) : query.error ? <p className="notice error" role="alert">We could not send a recovery link. Please try again.</p> : null}
         <form action={requestPasswordReset}>
           <div className="field">

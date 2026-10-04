@@ -5,7 +5,7 @@ export type AuthUser = {
 
 export type AuthResult =
   | { ok: true; user: AuthUser | null; requiresEmailConfirmation?: boolean }
-  | { ok: false; code: "INVALID_CREDENTIALS" | "PROVIDER_ERROR"; message: string };
+  | { ok: false; code: "INVALID_CREDENTIALS" | "PROVIDER_ERROR" | "RATE_LIMITED"; message: string };
 
 export interface AuthService {
   currentUser(): Promise<AuthUser | null>;
@@ -86,7 +86,13 @@ export async function createSupabaseAuthService(config: SupabaseAuthConfig): Pro
     },
     async requestPasswordReset(email, redirectTo) {
       const { error } = await client.auth.resetPasswordForEmail(email, { redirectTo });
-      if (error) return { ok: false, code: "PROVIDER_ERROR", message: "Unable to request a password reset." };
+      if (error) {
+        return {
+          ok: false,
+          code: error.code === "over_email_send_rate_limit" ? "RATE_LIMITED" : "PROVIDER_ERROR",
+          message: "Unable to request a password reset."
+        };
+      }
       return { ok: true, user: null };
     },
     async confirmEmail(tokenHash, type) {

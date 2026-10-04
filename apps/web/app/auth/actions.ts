@@ -51,7 +51,7 @@ export async function requestPasswordReset(formData: FormData) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
   if (!appUrl) redirect("/auth/forgot-password?error=reset");
   const result = await auth.requestPasswordReset(email.data, `${appUrl}/auth/recover`);
-  if (!result.ok) redirect("/auth/forgot-password?error=reset");
+  if (!result.ok) redirect(`/auth/forgot-password?error=${result.code === "RATE_LIMITED" ? "rate-limit" : "reset"}`);
   cookieJar.set("pi-recovery-sent-at", String(Date.now()), {
     httpOnly: true,
     maxAge: 5 * 60,
